@@ -1,4 +1,4 @@
-# Documentations
+# Documents
 
 ## reference
 Stored are some references in formalizing actuarial mathematics in Isabelle/HOL.

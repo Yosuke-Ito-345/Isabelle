@@ -41,7 +41,7 @@ next
   show "{a} \<subseteq> {a..b} - {a<..b}" using assms by simp
 qed
 
-(* To be included in Interval_Measure_Integral *)
+(* To be included in Lebesgue_Stieltjes_Integral *)
 (* subsubsection \<open>Intersection\<close> in Set_Interval.thy *)
 lemma Int_atLeastAtMost_Unbounded[simp]: "{a..} Int {..b} = {a..b}"
   by auto
@@ -676,14 +676,14 @@ lemma indicator_Iic_affine_neg_inverse:
 
 section \<open>Additional Lemmas for the \<open>HOL-Analysis\<close> Library\<close>
 
-(* To be included in Interval_Measure_Integral *)
+(* To be included in Lebesgue_Stieltjes_Integral *)
 lemma differentiable_eq_field_differentiable_real:
   fixes f :: "real \<Rightarrow> real"
   shows "f differentiable F \<longleftrightarrow> f field_differentiable F"
   unfolding field_differentiable_def differentiable_def has_real_derivative
   using has_real_derivative_iff by presburger
 
-(* To be included in Interval_Measure_Integral *)
+(* To be included in Lebesgue_Stieltjes_Integral *)
 lemma differentiable_on_eq_field_differentiable_real:
   fixes f :: "real \<Rightarrow> real"
   shows "f differentiable_on s \<longleftrightarrow> (\<forall>x\<in>s. f field_differentiable (at x within s))"
@@ -1030,7 +1030,7 @@ lemma has_integral_set_integral_real:
   unfolding set_integrable_def set_lebesgue_integral_def
   by simp (smt (verit, ccfv_SIG) has_integral_cong has_integral_restrict_UNIV indicator_times_eq_if)
 
-(* To be included in Interval_Measure_Integral *)
+(* To be included in Lebesgue_Stieltjes_Integral *)
 lemma set_borel_measurable_UNIV[simp]:
   fixes f :: "'a :: real_vector \<Rightarrow> real"
   shows "set_borel_measurable M UNIV f \<longleftrightarrow> f \<in> borel_measurable M"
@@ -1043,7 +1043,7 @@ lemma set_borel_measurable_lborel:
 lemma restrict_space_whole[simp]: "restrict_space M (space M) = M"
   unfolding restrict_space_def by (simp add: measure_of_of_measure)
 
-(* To be included in Interval_Measure_Integral *)
+(* To be included in Lebesgue_Stieltjes_Integral *)
 lemma deriv_measurable_real:
   fixes f :: "real \<Rightarrow> real"
   assumes "f differentiable_on S" "open S" "f \<in> borel_measurable borel"
@@ -1074,14 +1074,14 @@ proof -
     by simp (smt (verit) indicator_simps(2) measurable_cong mult_eq_0_iff)
 qed
 
-(* To be included in Interval_Measure_Integral *)
+(* To be included in Lebesgue_Stieltjes_Integral *)
 corollary deriv_measurabe_real_UNIV:
   fixes f :: "real \<Rightarrow> real"
   assumes "f differentiable_on UNIV" "f \<in> borel_measurable borel"
   shows "deriv f \<in> borel_measurable borel"
   using deriv_measurable_real[where S=UNIV] assms by simp
 
-(* To be included in Interval_Measure_Integral *)
+(* To be included in Lebesgue_Stieltjes_Integral *)
 lemma piecewise_differentiable_on_deriv_measurable_real:
   fixes f :: "real \<Rightarrow> real"
   assumes "f piecewise_differentiable_on S" "open S" "f \<in> borel_measurable borel"
@@ -1103,7 +1103,7 @@ proof -
     by (simp add: indicator_diff)
 qed
 
-(* To be included in Interval_Measure_Integral *)
+(* To be included in Lebesgue_Stieltjes_Integral *)
 corollary piecewise_differentiable_on_deriv_measurable_real_UNIV:
   fixes f :: "real \<Rightarrow> real"
   assumes "f piecewise_differentiable_on UNIV" "f \<in> borel_measurable borel"

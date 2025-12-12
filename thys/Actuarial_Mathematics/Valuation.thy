@@ -331,8 +331,117 @@ proof -
   ultimately show ?thesis by simp
 qed
 
+end
+
+sublocale val_life_ann \<subseteq> val i l f ab tp
+  by (standard; simp)
+
+context val_life_ann
+begin
+
+lemma ennAPV_nn_integral_interval_measure_abg:
+  assumes "x < $\<psi>"
+  shows "ennAPV x = (\<integral>\<^sup>+t\<in>{f..}. $v.^t * $p_{t&x} \<partial>(IM abg))"
+    (is "?LHS = ?RHS")
+proof -
+  { fix \<xi> assume "\<xi> \<in> space (\<MM> \<downharpoonright> alive x)"
+    have "ab (T x \<xi>) constant_on {T x \<xi> <..}"
+      using ab_constant_on_th by (meson Ioi_le_Ico constant_on_subset)
+    hence "(\<integral>\<^sup>+t. ennreal ($v.^(tp (T x \<xi>) t)) \<partial>(IM (ab (T x \<xi>)))) = 
+      (\<integral>\<^sup>+t\<in>{..< T x \<xi>}. ennreal ($v.^(tp (T x \<xi>) t)) \<partial>(IM (ab (T x \<xi>))))"
+      by (rewrite nn_integral_interval_measure_Iio[where s="T x \<xi>"]; simp add: isCont_ab_th)
+    also have "\<dots> = (\<integral>\<^sup>+t\<in>{..< T x \<xi>}. ennreal ($v.^(tp (T x \<xi>) t)) \<partial>(IM abg))"
+      by (rule Iio_nn_integral_interval_measure_cong;
+          simp add: fun_diff_def ab_eq_abg constant_on_def)
+    also have "\<dots> = (\<integral>\<^sup>+t\<in>{..< T x \<xi>}. ennreal ($v.^t) \<partial>(IM abg))" unfolding tp_def by simp
+    finally have
+      "(\<integral>\<^sup>+t. ennreal ($v.^(tp (T x \<xi>) t)) \<partial>(IM (ab (T x \<xi>)))) =
+        (\<integral>\<^sup>+t\<in>{..< T x \<xi>}. ennreal ($v.^t) \<partial>(IM abg))" . }
+  hence "?LHS = \<integral>\<^sup>+\<xi>. (\<integral>\<^sup>+t\<in>{..< T x \<xi>}. ennreal ($v.^t) \<partial>(IM abg)) \<partial>(\<MM> \<downharpoonright> alive x)"
+    unfolding ennAPV_def by (meson nn_integral_cong)
+  also have "\<dots> = (\<integral>\<^sup>+t. $v.^t * $p_{t&x} \<partial>(IM abg))"
+    using assms
+    by (rewrite nn_integral_toTx_p; simp add: sigma_finite_interval_measure monoD ennreal_mult')
+  also have "\<dots> = ?RHS"
+    by (rewrite nn_integral_interval_measure_Ici; simp add: fun_diff_def constant_on_def assms)
+  finally show ?thesis .
+qed
 
 end
+
+subsection \<open>Term Life Annuity\<close>
+
+locale val_term_life_ann = val_life_ann +
+  fixes n::real
+  assumes n_nonneg[simp]: "n \<ge> 0" and
+    abg_eq_fn: "\<And>t. t \<ge> f + n \<Longrightarrow> abg t = abg (f + n)"
+begin 
+
+lemma ab_eq_fn:
+  fixes \<theta> t :: real
+  assumes "t \<ge> f + n"
+  shows "ab \<theta> t = ab \<theta> (f + n)"
+proof (cases \<open>f + n < \<theta>\<close>)
+  case fnth: True
+  thus ?thesis
+  proof (cases \<open>t < \<theta>\<close>)
+    case True
+    hence "ab \<theta> t = abg t" using ab_eq_abg by simp
+    also have "\<dots> = abg (f + n)" using abg_eq_fn assms by blast
+    also have "\<dots> = ab \<theta> (f + n)" using fnth ab_eq_abg by simp
+    finally show ?thesis .
+  next
+    case False
+    hence "ab \<theta> t = Lim (at_left \<theta>) abg" using ab_eq_Lim_abg by simp
+    also have "\<dots> = abg (f + n)"
+    proof -
+      have "\<And>s. s \<noteq> \<theta> \<Longrightarrow> s \<in> {f+n<..<\<theta>} \<Longrightarrow> abg s = abg (f + n)" by (rule abg_eq_fn) simp
+      hence "(abg \<longlongrightarrow> abg (f + n)) (at_left \<theta>)"
+        apply (rewrite at_within_Ioo_at_left[THEN sym, of "f+n"], simp add: fnth)
+        by (rewrite Lim_cong_within[where g="\<lambda>_. abg (f+n)"]; simp) simp+
+      thus ?thesis using tendsto_Lim by force
+    qed
+    also have "\<dots> = ab \<theta> (f + n)" using fnth ab_eq_abg by simp
+    finally show ?thesis .
+  qed
+next
+  case False
+  thus ?thesis using ab_eq_Lim_abg assms by force
+qed
+
+end
+
+sublocale val_term_life_ann \<subseteq> val_term_life i l f ab tp n
+  apply (standard, simp)
+  using ab_eq_fn by blast
+
+context val_term_life_ann
+begin
+
+corollary abg_constant_on_fn: "abg constant_on {f+n..}"
+  using abg_eq_fn by (meson atLeast_iff constant_on_def)
+
+lemma ennAPV_term_nn_integral_interval_measure_abg:
+  assumes "x < $\<psi>"
+  shows "ennAPV x = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t * $p_{t&x} \<partial>(IM abg))"
+proof -
+  have[simp]: "abg constant_on {f+n<..}"
+    using abg_constant_on_fn by (meson Ioi_le_Ico constant_on_subset)
+  have "ennAPV x = (\<integral>\<^sup>+t. ennreal ($v.^t * $p_{t&x}) * indicator {f..} t \<partial>(IM abg))"
+    using ennAPV_nn_integral_interval_measure_abg assms by simp
+  also have "\<dots> = (\<integral>\<^sup>+t\<in>{..f+n}. ennreal ($v.^t * $p_{t&x}) * indicator {f..} t \<partial>(IM abg))"
+    using assms by (rewrite nn_integral_interval_measure_Iic; simp)
+  also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..f+n}. ennreal ($v.^t * $p_{t&x}) \<partial>(IM abg))"
+    apply (rule nn_integral_cong)
+    by (metis mult_1_right atLeastAtMost_iff atLeast_iff
+        atMost_iff ennreal_mult_right_cong indicator_simps)
+  finally show ?thesis .
+qed
+
+end
+
+
+
 
 
 

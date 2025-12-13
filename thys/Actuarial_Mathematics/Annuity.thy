@@ -7,6 +7,8 @@ text \<open>
   I will also use this formulation to introduce life annuities.
 \<close>
 
+section \<open>Annuity\<close>
+
 abbreviation "IM \<equiv> interval_measure"
 
 locale annuity = interest +
@@ -23,7 +25,7 @@ locale annuity = interest +
 begin
 
 definition "PV \<equiv> \<integral>t. $v.^t \<partial>(IM abg)"
-  \<comment> \<open>present value of the annuity certain\<close>
+  \<comment> \<open>present value of annuity certain\<close>
   \<comment> \<open>When the integral diverges, this definition is interpreted as meaningless.\<close>
 
 definition "ennPV \<equiv> \<integral>\<^sup>+t. $v.^t \<partial>(IM abg)"
@@ -44,6 +46,20 @@ lemma ennPV_PV:
   by (intro integrableI_bounded) simp_all
 
 end
+
+subsection \<open>Term Annuity\<close>
+
+locale term_annuity = annuity +
+  fixes n::real
+  assumes n_nonneg[simp]: "n \<ge> 0" and
+    abg_eq_fn: "\<And>t. t \<ge> f + n \<Longrightarrow> abg t = abg (f + n)"
+begin
+
+lemma abg_constant_on_fn: "abg constant_on {f+n..}"
+  using abg_eq_fn by (meson atLeast_iff constant_on_def)
+
+end
+
 
 subsection \<open>Deferred Continuous Perpetual Annuity\<close>
 

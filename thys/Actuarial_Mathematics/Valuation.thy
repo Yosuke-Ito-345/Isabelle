@@ -582,6 +582,198 @@ qed
 
 end
 
+subsection \<open>Deferred Continuous Term Life Annuity\<close>
+
+locale val_defer_cont_term_life_ann = actuarial_model +
+  fixes f n :: real
+  assumes f_nonneg[simp]: "f \<ge> 0" and
+    n_nonneg[simp]: "n \<ge> 0"
+begin
+
+definition abg :: "real \<Rightarrow> real" where "abg t \<equiv> max (min t (f + n) - f) 0"
+
+lemma abg_f_0[simp]:
+  fixes t::real
+  assumes "t < f"
+  shows "abg t = 0"
+  unfolding abg_def using assms by simp
+
+lemma abg_f_fn:
+  fixes t::real
+  assumes "f \<le> t" "t < f + n"
+  shows "abg t = t - f"
+  unfolding abg_def using assms by simp
+
+lemma abg_fn:
+  fixes t::real
+  assumes "f + n \<le> t"
+  shows "abg t = n"
+  unfolding abg_def using assms by simp
+
+lemma abg_continuous[simp]:
+  fixes t::real
+  shows "isCont abg t"
+  unfolding abg_def by (simp add: continuous_max continuous_min)
+
+corollary
+  fixes t::real
+  shows abg_right_continuous[simp]: "continuous (at_right t) abg" and
+    abg_left_continuous[simp]: "continuous (at_left t) abg"
+  by (simp add: continuous_at_imp_continuous_within)+
+
+lemma abg_mono[simp]: "mono abg"
+  unfolding abg_def by (simp add: monoI)
+
+end
+
+sublocale val_defer_cont_term_life_ann \<subseteq> val_life_ann i l f abg
+  by (standard; simp)
+
+context val_defer_cont_term_life_ann
+begin
+
+lemma abg_eq_fn:
+  fixes t::real
+  assumes "t \<ge> f + n"
+  shows "abg t = abg (f + n)"
+  unfolding abg_def using assms by simp
+
+end
+
+sublocale val_defer_cont_term_life_ann \<subseteq> val_term_life_ann i l f abg n
+  apply (standard, simp)
+  by (rule abg_eq_fn) simp
+
+context val_defer_cont_term_life_ann
+begin
+
+lemma DERIV_abg:
+  fixes t::real
+  assumes "f < t" "t < f + n"
+  shows "DERIV abg t :> 1"
+proof -
+  have "DERIV (\<lambda>s. s - f) t :> 1 - 0" by (intro derivative_intros)
+  moreover have "\<forall>\<^sub>F s in nhds t. abg s = s - f"
+    apply (rewrite eventually_nhds_metric)
+    by (rule exI[of _ "min (t-f) (f+n-t)"], auto simp add: assms abg_def dist_real_def)
+  ultimately show ?thesis
+    by (rewrite DERIV_cong_ev; simp)
+qed
+
+corollary abg_differentiable_on_f_fn : "abg differentiable_on {f <..< f+n}"
+  by (meson DERIV_abg differentiable_at_withinI differentiable_on_def
+      greaterThanLessThan_iff real_differentiable_def)
+
+corollary deriv_abg:
+  fixes t::real
+  assumes "f < t" "t < f + n"
+  shows "deriv abg t = 1"
+  using assms DERIV_abg DERIV_imp_deriv by blast
+
+lemma set_nn_integral_interval_measure_abg:
+  fixes g :: "real \<Rightarrow> real" and A :: "real set"
+  assumes "g \<in> borel_measurable borel" and
+    A_borel: "A \<in> sets borel" "A \<subseteq> {f..f+n}"
+  shows "(\<integral>\<^sup>+t\<in>A. g t \<partial>(IM abg)) = (\<integral>\<^sup>+t\<in>A. g t \<partial>lborel)"
+proof -
+
+  wlog A_f_fn: "A \<subseteq> {f<..<f+n}" generalizing A keeping A_borel
+  proof -
+    have "(\<integral>\<^sup>+t\<in>A. g t \<partial>(IM abg)) = (\<integral>\<^sup>+t\<in>A-{f}. g t \<partial>(IM abg))"
+      using assms interval_measure_singleton_continuous
+      by (rewrite nn_integral_minus_null; simp add: null_sets_def)
+    also have "\<dots> = (\<integral>\<^sup>+t\<in>A-{f}-{f+n}. g t \<partial>(IM abg))"
+      using assms interval_measure_singleton_continuous
+      by (rewrite nn_integral_minus_null; simp add: null_sets_def)
+    also have "\<dots> = (\<integral>\<^sup>+t\<in>A-{f}-{f+n}. g t \<partial>lborel)"
+      using hypothesis[of "A-{f}-{f+n}"] assms by force
+    also have "\<dots> = (\<integral>\<^sup>+t\<in>A-{f}. g t \<partial>lborel)"
+      using assms by (rewrite nn_integral_minus_null[THEN sym]; force)
+    also have "\<dots> = (\<integral>\<^sup>+t\<in>A. g t \<partial>lborel)"
+      using assms by (rewrite nn_integral_minus_null[THEN sym]; force)
+    finally show ?thesis .
+  qed
+
+  thus ?thesis
+  proof -
+    have "(\<integral>\<^sup>+t\<in>A. g t \<partial>(IM abg)) = (\<integral>\<^sup>+t\<in>A. ennreal (g t) * ennreal (deriv abg t) \<partial>lborel)"
+      using assms A_borel A_f_fn abg_differentiable_on_f_fn deriv_abg
+      by (rewrite set_nn_integral_interval_measure_deriv[of abg f "f+n"]; simp)
+    also have "\<dots> = (\<integral>\<^sup>+t\<in>A. g t \<partial>lborel)"
+      apply (intro set_nn_integral_cong)
+      using deriv_abg A_f_fn by force+
+    finally show ?thesis .
+  qed
+qed
+
+lemma
+  fixes x::real
+  assumes "x < $\<psi>"
+  shows APV_set_integrable: "set_integrable lborel {f..f+n} (\<lambda>t. $v.^t * $p_{t&x})" and
+    APV_calc: "APV x = (LBINT t:{f..f+n}. $v.^t * $p_{t&x})"
+proof -
+
+  text \<open>Proof of "APV_set_integrable"\<close>
+  have "set_integrable lborel {f..f+n} (\<lambda>t. $v.^t)"
+    using v_pos by (rule set_integrable_powr_Icc)
+  moreover have " set_borel_measurable lborel {f..f+n} (\<lambda>t. $v.^t * $p_{t&x})"
+    unfolding set_borel_measurable_def using assms by simp
+  moreover have "AE t\<in>{f..f+n} in lborel. norm ($v.^t * $p_{t&x}) \<le> norm ($v.^t)"
+    using v_pos p_le_1 assms by simp
+  ultimately show APV_set_integrable: "set_integrable lborel {f..f+n} (\<lambda>t. $v.^t * $p_{t&x})"
+    by (rule set_integrable_bound)
+
+  text \<open>Proof of "APV_calc"\<close>
+  have "ennAPV x = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t * $p_{t&x} \<partial>(IM abg))"
+    by (rule ennAPV_term_nn_integral_interval_measure_abg, simp add: assms)
+  also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t * $p_{t&x} \<partial>lborel)"
+    by (rule set_nn_integral_interval_measure_abg; simp add: assms)
+  also have "\<dots> = (LBINT t:{f..f+n}. $v.^t * $p_{t&x})"
+    using APV_set_integrable assms v_pos by (rewrite set_nn_integral_eq_set_integral; simp)
+  finally have enn: "ennAPV x = (LBINT t:{f..f+n}. $v.^t * $p_{t&x})" .
+  hence "ennAPV x < \<infinity>" by simp
+  moreover have "\<And>\<theta>. \<theta> > 0 \<Longrightarrow> (\<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) < \<infinity>"
+  proof -
+    fix \<theta>::real assume "\<theta> > 0"
+    have "(\<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) = (\<integral>\<^sup>+t\<in>{f..<\<theta>}. $v.^t \<partial>(IM abg))"
+      by (rewrite PV_abg; simp)
+    also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..< min (f+n) \<theta>}. $v.^t \<partial>(IM abg))"
+    proof -
+      have "(\<integral>\<^sup>+t\<in>{f..<\<theta>}. $v.^t \<partial>(IM abg)) =
+        (\<integral>\<^sup>+t\<in>{f..< min (f+n) \<theta>} \<union> {min (f+n) \<theta> ..<\<theta>}. $v.^t \<partial>(IM abg))"
+        apply (rule set_nn_integral_cong, simp)
+        using less_eq_real_def n_nonneg by force+
+      also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..< min (f+n) \<theta>}. $v.^t \<partial>(IM abg)) +
+        (\<integral>\<^sup>+t\<in>{min (f+n) \<theta> ..<\<theta>}. $v.^t \<partial>(IM abg))"
+        by (rewrite nn_integral_disjoint_pair; simp)
+      also have "(\<integral>\<^sup>+t\<in>{min (f+n) \<theta> ..<\<theta>}. $v.^t \<partial>(IM abg)) = 0"
+      proof -
+        have "abg - (\<lambda>_. n) constant_on {min (f + n) \<theta> <..<\<theta>}"
+          unfolding fun_diff_def constant_on_def
+          by (rule exI[of _ 0], safe, rewrite abg_fn; force)
+        thus ?thesis
+          using interval_measure_const_null
+          by (rewrite Ico_Cont_nn_integral_interval_measure_cong[of abg "\<lambda>_. n"]; simp)
+        qed
+      finally show ?thesis by simp
+    qed
+    also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..< min (f+n) \<theta>}. $v.^t \<partial>lborel)"
+      by (rule set_nn_integral_interval_measure_abg) auto
+    also have "\<dots> \<le> (\<integral>\<^sup>+t\<in>{f.. min (f+n) \<theta>}. $v.^t \<partial>lborel)"
+      by (rule nn_set_integral_set_mono, simp add: atLeastLessThan_subseteq_atLeastAtMost_iff)
+    also have "\<dots> < \<infinity>" using nn_integral_powr_Icc_finite v_pos by simp
+    finally show "(\<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) < \<infinity>" .
+  qed
+  ultimately have "APV x = ennAPV x" using ennAPV_APV by simp
+  with enn show "APV x = (LBINT t:{f..f+n}. $v.^t * $p_{t&x})"
+    using ennreal_inj assms APV_nonneg by simp
+
+qed
+
+end
+
+
+
 
 
 

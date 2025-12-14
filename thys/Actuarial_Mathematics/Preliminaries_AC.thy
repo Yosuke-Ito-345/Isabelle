@@ -21,25 +21,13 @@ lemma Icc_minus_Ico:
   fixes a b
   assumes "a \<le> b"
   shows  "{a..b} - {a..<b} = {b}"
-proof
-  { fix x assume "x \<in> {a..b} - {a..<b}"
-    hence "x \<in> {b}" by force }
-  thus "{a..b} - {a..<b} \<subseteq> {b}" by blast
-next
-  show "{b} \<subseteq> {a..b} - {a..<b}" using assms by simp
-qed
+  using assms by auto
 
 lemma Icc_minus_Ioc:
   fixes a b
   assumes "a \<le> b"
   shows "{a..b} - {a<..b} = {a}"
-proof
-  { fix x assume "x \<in> {a..b} - {a<..b}"
-    hence "x \<in> {a}" by force }
-  thus "{a..b} - {a<..b} \<subseteq> {a}" by blast
-next
-  show "{a} \<subseteq> {a..b} - {a<..b}" using assms by simp
-qed
+  using assms by auto
 
 (* To be included in Lebesgue_Stieltjes_Integral *)
 (* subsubsection \<open>Intersection\<close> in Set_Interval.thy *)
@@ -59,14 +47,7 @@ end
 
 lemma Ico_real_nat_disjoint:
   "disjoint_family (\<lambda>n::nat. {a + real n ..< a + real n + 1})" for a::real
-proof -
-  { fix m n :: nat
-    assume "{a + real m ..< a + real m + 1} \<inter> {a + real n ..< a + real n + 1} \<noteq> {}"
-    then obtain x::real
-      where "x \<in> {a + real m ..< a + real m + 1} \<inter> {a + real n ..< a + real n + 1}" by force
-    hence "m = n" by simp }
-  thus ?thesis unfolding disjoint_family_on_def by blast
-qed
+  unfolding disjoint_family_on_def by fastforce
 
 corollary Ico_nat_disjoint: "disjoint_family (\<lambda>n::nat. {real n ..< real n + 1})"
   using Ico_real_nat_disjoint[of 0] by simp
@@ -153,29 +134,7 @@ lemma(in field) divide_mult_cancel[simp]: fixes a b assumes "b \<noteq> 0"
   by (simp add: assms)
 
 lemma inverse_powr: "(1/a).^b = a.^-b" if "a > 0" for a b :: real
-  by (smt (verit) that powr_divide powr_minus_divide powr_one_eq_one)
-
-lemma powr_less_cancel2: "0 < a \<Longrightarrow> 0 < x \<Longrightarrow> 0 < y \<Longrightarrow> x.^a < y.^a \<Longrightarrow> x < y"
-  for a x y ::real
-proof -
-  assume a_pos: "0 < a" and x_pos: "0 < x" and y_pos: "0 < y"
-  show "x.^a < y.^a \<Longrightarrow> x < y"
-  proof (erule contrapos_pp)
-    assume "\<not> x < y"
-    hence "x \<ge> y" by fastforce
-    hence "x.^a \<ge> y.^a"
-    proof (cases "x = y")
-      case True
-      thus ?thesis by simp
-    next
-      case False
-      hence "x.^a > y.^a"
-        using \<open>x \<ge> y\<close> powr_less_mono2 a_pos y_pos by auto
-      thus ?thesis by auto
-    qed
-    thus "\<not> x.^a < y.^a" by fastforce
-  qed
-qed
+  by (simp add: powr_divide powr_minus_divide)
 
 lemma geometric_increasing_sum_aux: "(1-r)^2 * (\<Sum>k<n. (k+1)*r^k) = 1 - (n+1)*r^n + n*r^(n+1)"
   for n::nat and r::real
@@ -188,12 +147,12 @@ next
     apply (simp only: sum.lessThan_Suc)
     apply (subst distrib_left)
     apply (subst Suc.hyps)
-    by (subst power2_diff, simp add: field_simps power2_eq_square)
+    by (subst power2_diff) (simp add: field_simps power2_eq_square)
 qed
 
 lemma geometric_increasing_sum: "(\<Sum>k<n. (k+1)*r^k) = (1 - (n+1)*r^n + n*r^(n+1)) / (1-r)^2"
   if "r \<noteq> 1" for n::nat and r::real
-  by (subst geometric_increasing_sum_aux[THEN sym], simp add: that)
+  by (subst geometric_increasing_sum_aux[THEN sym]) (simp add: that)
 
 (* Already included in Topologial_Spaces.thy *)
 lemma Lim_cong:
@@ -225,17 +184,14 @@ lemma mono_on_antimono_on:
   shows "mono_on A f \<longleftrightarrow> antimono_on A (\<lambda>r. - f r)"
   by (simp add: monotone_on_def)
 
-corollary mono_antimono:
-  fixes f :: "'a::order \<Rightarrow> 'b::ordered_ab_group_add"
-  shows "mono f \<longleftrightarrow> antimono (\<lambda>r. - f r)"
-  by (rule mono_on_antimono_on)
+lemmas mono_antimono = mono_on_antimono_on[where A=UNIV]
 
 lemma mono_on_at_top_le:
   fixes a :: "'a::linorder" and b :: "'b::{order_topology, linordered_ab_group_add}"
     and f :: "'a \<Rightarrow> 'b"
   assumes f_mono: "mono_on {a..} f" and f_to_l: "(f \<longlongrightarrow> l) at_top"
   shows "\<And>x. x \<in> {a..} \<Longrightarrow> f x \<le> l"
-proof (unfold atomize_ball)
+proof -
   { fix b assume b_a: "b \<ge> a" and fb_l: "\<not> f b \<le> l"
     let ?eps = "f b - l"
     have lim_top: "\<And>S. open S \<Longrightarrow> l \<in> S \<Longrightarrow> eventually (\<lambda>x. f x \<in> S) at_top"
@@ -248,15 +204,14 @@ proof (unfold atomize_ball)
     have "f ?n < f b" using fn_in by force
     moreover have "f ?n \<ge> f b" using f_mono b_a by (simp add: le_max_iff_disj mono_on_def)
     ultimately have False by simp }
-  thus "\<forall>x\<in>{a..}. f x \<le> l"
-    apply -
-    by (rule notnotD, rewrite Set.ball_simps) auto
+  thus "\<And>x. x \<in> {a..} \<Longrightarrow> f x \<le> l"
+    by blast
 qed
 
 corollary mono_at_top_le:
   fixes b :: "'b::{order_topology, linordered_ab_group_add}" and f :: "'a::linorder \<Rightarrow> 'b"
   assumes "mono f" and "(f \<longlongrightarrow> b) at_top"
-  shows "\<And>x. f x \<le> b"
+  shows "f x \<le> b"
   using mono_on_at_top_le assms by (metis atLeast_iff mono_imp_mono_on nle_le)
 
 lemma mono_on_at_bot_ge:
@@ -264,7 +219,7 @@ lemma mono_on_at_bot_ge:
     and f :: "'a \<Rightarrow> 'b"
   assumes f_mono: "mono_on {..a} f" and f_to_l: "(f \<longlongrightarrow> l) at_bot"
   shows "\<And>x. x \<in> {..a} \<Longrightarrow> f x \<ge> l"
-proof (unfold atomize_ball)
+proof -
   { fix b assume b_a: "b \<le> a" and fb_l: "\<not> f b \<ge> l"
     let ?eps = "l - f b"
     have lim_bot: "\<And>S. open S \<Longrightarrow> l \<in> S \<Longrightarrow> eventually (\<lambda>x. f x \<in> S) at_bot"
@@ -277,9 +232,8 @@ proof (unfold atomize_ball)
     have "f ?n > f b" using fn_in by force
     moreover have "f ?n \<le> f b" using f_mono b_a by (simp add: min.coboundedI1 mono_onD)
     ultimately have False by simp }
-  thus "\<forall>x\<in>{..a}. f x \<ge> l"
-    apply -
-    by (rule notnotD, rewrite Set.ball_simps) auto
+  thus "\<And>x. x \<in> {..a} \<Longrightarrow> f x \<ge> l"
+    by blast
 qed
 
 corollary mono_at_bot_ge:
@@ -293,7 +247,7 @@ lemma antimono_on_at_top_ge:
     and f :: "'a \<Rightarrow> 'b"
   assumes f_antimono: "antimono_on {a..} f" and f_to_l: "(f \<longlongrightarrow> l) at_top"
   shows "\<And>x. x \<in> {a..} \<Longrightarrow> f x \<ge> l"
-proof (unfold atomize_ball)
+proof -
   { fix b assume b_a: "b \<ge> a" and fb_l: "\<not> f b \<ge> l"
     let ?eps = "l - f b"
     have lim_top: "\<And>S. open S \<Longrightarrow> l \<in> S \<Longrightarrow> eventually (\<lambda>x. f x \<in> S) at_top"
@@ -307,9 +261,8 @@ proof (unfold atomize_ball)
     moreover have "f ?n \<le> f b" using f_antimono b_a
       by (simp add: antimono_onD le_max_iff_disj)
     ultimately have False by simp }
-  thus "\<forall>x\<in>{a..}. f x \<ge> l"
-    apply -
-    by (rule notnotD, rewrite Set.ball_simps) auto
+  thus "\<And>x. x \<in> {a..} \<Longrightarrow> f x \<ge> l"
+    by blast
 qed
 
 corollary antimono_at_top_le:
@@ -323,7 +276,7 @@ lemma antimono_on_at_bot_ge:
     and f :: "'a \<Rightarrow> 'b"
   assumes f_antimono: "antimono_on {..a} f" and f_to_l: "(f \<longlongrightarrow> l) at_bot"
   shows "\<And>x. x \<in> {..a} \<Longrightarrow> f x \<le> l"
-proof (unfold atomize_ball)
+proof -
   { fix b assume b_a: "b \<le> a" and fb_l: "\<not> f b \<le> l"
     let ?eps = "f b - l"
     have lim_bot: "\<And>S. open S \<Longrightarrow> l \<in> S \<Longrightarrow> eventually (\<lambda>x. f x \<in> S) at_bot"
@@ -336,9 +289,8 @@ proof (unfold atomize_ball)
     have "f ?n < f b" using fn_in by force 
    moreover have "f ?n \<ge> f b" using f_antimono b_a by (simp add: min.coboundedI1 antimono_onD)
     ultimately have False by simp }
-  thus  "\<forall>x\<in>{..a}. f x \<le> l"
-    apply -
-    by (rule notnotD, rewrite Set.ball_simps) auto
+  thus "\<And>x. x \<in> {..a} \<Longrightarrow> f x \<le> l"
+    using assms by blast
 qed
 
 corollary antimono_at_bot_ge:
@@ -357,7 +309,7 @@ lemma continuous_mult_left_iff:
   fixes c::"'a::real_normed_field"
   assumes "c \<noteq> 0"
   shows "continuous F f \<longleftrightarrow> continuous F (\<lambda>x. c * f x)"
-  using continuous_mult_left continuous_cdivide assms by force
+  using assms continuous_cmult_left_iff by blast
 
 lemma continuous_mult_right_iff:
   fixes c::"'a::real_normed_field"
@@ -377,25 +329,6 @@ next
   assume "continuous F (\<lambda>x. f x / c)"
   hence "continuous F (\<lambda>x. f x / c * c)" using continuous_mult_right by fastforce
   thus "continuous F f" using assms by force
-qed
-
-lemma continuous_cong:
-  assumes "eventually (\<lambda>x. f x = g x) F" "f (Lim F (\<lambda>x. x)) = g (Lim F (\<lambda>x. x))"
-  shows "continuous F f \<longleftrightarrow> continuous F g"
-  unfolding continuous_def using assms filterlim_cong by force
-
-lemma continuous_at_within_cong:
-  assumes "f x = g x" "eventually (\<lambda>x. f x = g x) (at x within s)"
-  shows "continuous (at x within s) f \<longleftrightarrow> continuous (at x within s) g"
-proof (cases \<open>x \<in> closure (s - {x})\<close>)
-  case True
-  thus ?thesis
-    using assms apply (intro continuous_cong, simp)
-    by (rewrite Lim_ident_at, simp add: at_within_eq_bot_iff)+ simp
-next
-  case False
-  hence "at x within s = bot" using not_trivial_limit_within by blast
-  thus ?thesis by simp
 qed
 
 lemma continuous_within_shift:
@@ -458,8 +391,7 @@ lemma DERIV_cdivide_iff:
   assumes "c \<noteq> 0"
   shows "(f has_field_derivative D) (at x within s) \<longleftrightarrow>
     ((\<lambda>x. f x / c) has_field_derivative D / c) (at x within s)"
-  apply (rewrite field_class.field_divide_inverse)+
-  using DERIV_cmult_right_iff assms inverse_nonzero_iff_nonzero by blast
+  by (simp add: DERIV_cmult_right_iff assms field_class.field_divide_inverse)
 
 lemma DERIV_ln_divide_chain:
   fixes f :: "real \<Rightarrow> real"
@@ -492,13 +424,11 @@ lemma powr_at_top:
 proof -
   have [simp]: "ln a > 0" using assms by simp
   have "a \<noteq> 0" using assms by simp
-  moreover have "filterlim (\<lambda>x. exp (x * ln a)) at_top at_top"
-    apply (rule filterlim_compose[of exp _ at_top], rule exp_at_top)
-    apply (rewrite mult.commute)
-    apply (intro filterlim_cmult_at_bot_at_top)
-      apply (simp add: filterlim_ident)
-    using assms by (rewrite ln_eq_zero_iff; simp) simp
-  ultimately show ?thesis unfolding powr_def by simp
+  moreover have "filterlim (\<lambda>x. exp (ln a * x)) at_top at_top"
+    using assms
+    by(auto intro!: filterlim_compose[OF exp_at_top] filterlim_cmult_at_bot_at_top[OF ln_at_top]
+        ln_at_top filterlim_cmult_at_bot_at_top[OF filterlim_ident])
+  ultimately show ?thesis unfolding powr_def by(simp add: mult.commute)
 qed
 
 lemma powr_0_at_top:
@@ -509,7 +439,7 @@ proof -
   have "\<And>x. inverse ((1/a).^x) = a.^x"
     using assms by (rewrite inverse_powr; simp add: powr_minus)
   moreover have "((\<lambda>x. inverse ((1/a).^x)) \<longlongrightarrow> 0) at_top"
-    by (rule tendsto_inverse_0_at_top, rule powr_at_top, simp add: assms)
+    by (intro tendsto_inverse_0_at_top powr_at_top) (simp add: assms)
   ultimately show ?thesis by simp
 qed
 
@@ -821,9 +751,8 @@ lemma integral_combine2:
   assumes "a \<le> c" "c \<le> b"
     and "f integrable_on {a..c}" "f integrable_on {c..b}"
   shows "integral {a..c} f + integral {c..b} f = integral {a..b} f"
-  apply (rule integral_unique[THEN sym])
-  apply (rule has_integral_combine[of a c b], simp_all add: assms)
-  using has_integral_integral assms by auto
+  by (meson Henstock_Kurzweil_Integration.integrable_combine
+      Henstock_Kurzweil_Integration.integral_combine assms)
 
 lemma has_integral_null_interval: fixes a b :: real and f::"real \<Rightarrow> real" assumes "a \<ge> b"
   shows "(f has_integral 0) {a..b}"
@@ -841,9 +770,8 @@ proof -
     by (auto intro!: derivative_eq_intros)
   show ?thesis
     using has_integral_substitution_general
-      [of "{}" a b ?g a b f, simplified, OF assms g_C0 Dg_g', simplified]
-    apply (simp add: has_integral_null_interval[OF assms(1), THEN integral_unique])
-    by (simp add: has_integral_neg_iff)
+      [of "{}" a b ?g a b f, simplified, OF assms g_C0 Dg_g']
+    by (simp add: has_integral_null_interval[OF assms(1), THEN integral_unique] has_integral_neg_iff)
 qed
 
 lemma FTC_real_deriv_has_integral:
@@ -887,10 +815,10 @@ proof -
     fix x::real
     assume "x \<in> {0..c}"
     show "((\<lambda>y. a.^y / ln a) has_vector_derivative a.^x) (at x within {0..c})"
-      apply (insert has_real_derivative_powr2[OF a_pos, of x])
-      apply (drule DERIV_cdivide[where c = "ln a"], simp add: assms)
-      apply (rule has_vector_derivative_within_subset[where S=UNIV and T="{0..c}"], auto)
-      by (rule iffD1[OF has_real_derivative_iff_has_vector_derivative])
+      using has_real_derivative_powr2[OF a_pos, of x]
+            DERIV_cdivide[where c = "ln a"]
+      by(fastforce simp: assms has_real_derivative_iff_has_vector_derivative
+               intro!: has_vector_derivative_within_subset[where S=UNIV and T="{0..c}"])
   qed
   thus ?thesis
     using assms powr_zero_eq_one by (simp add: field_simps)
@@ -1027,8 +955,7 @@ lemma has_integral_set_integral_real:
   assumes f: "set_integrable lborel A f"
   shows "(f has_integral (set_lebesgue_integral lborel A f)) A"
   using assms has_integral_integral_real[where f="\<lambda>x. indicat_real A x * f x"]
-  unfolding set_integrable_def set_lebesgue_integral_def
-  by simp (smt (verit, ccfv_SIG) has_integral_cong has_integral_restrict_UNIV indicator_times_eq_if)
+  by (simp add: has_integral_iff set_borel_integral_eq_integral)
 
 (* To be included in Lebesgue_Stieltjes_Integral *)
 lemma set_borel_measurable_UNIV[simp]:
@@ -1095,12 +1022,12 @@ proof -
     unfolding differentiable_on_def using assms by (metis Diff_iff at_within_open diff)
   ultimately have "set_borel_measurable borel (S - T) (deriv f)"
     by (intro deriv_measurable_real; simp add: assms)
-  thus ?thesis
-    unfolding set_borel_measurable_def apply simp
-    apply (rule measurable_discrete_difference
-        [where X=T and f="\<lambda>x. indicat_real (S - T) x * deriv f x"], simp_all)
-    using fin uncountable_infinite apply blast
-    by (simp add: indicator_diff)
+  moreover have "x \<notin> T \<Longrightarrow> indicat_real (S - T) x = indicat_real S x" for x
+    by(simp add: indicator_diff)
+  ultimately show ?thesis
+    using fin 
+    by(auto intro!: measurable_discrete_difference[where f="\<lambda>x. indicat_real (S - T) x * deriv f x"]
+        countable_finite simp: set_borel_measurable_def)
 qed
 
 (* To be included in Lebesgue_Stieltjes_Integral *)
@@ -1113,7 +1040,7 @@ corollary piecewise_differentiable_on_deriv_measurable_real_UNIV:
 lemma borel_measurable_antimono:
   fixes f :: "real \<Rightarrow> real"
   shows "antimono f \<Longrightarrow> f \<in> borel_measurable borel"
-  using borel_measurable_mono by (smt (verit, del_insts) borel_measurable_uminus_eq monotone_on_def)
+  using borel_measurable_mono[of "\<lambda>x. - f x"] by (simp add: antimonoD monoI)
 
 lemma set_borel_measurable_restrict_space_iff: 
   fixes f :: "'a \<Rightarrow> 'b::real_normed_vector"
@@ -1147,7 +1074,8 @@ proof -
     using null_sets_translation[of N "-a", simplified] by (simp add: add.commute)
   moreover have "\<And>y. y \<in> space lborel - {y. a+y \<in> N} \<Longrightarrow> P (a+y)" using P by force
   ultimately show "AE y in lborel. P (a+y)"
-    by (smt (verit, del_insts) Diff_iff eventually_ae_filter mem_Collect_eq subsetI)
+    by (metis (no_types, lifting) Collect_mono P UNIV_I eventually_ae_filter
+        mem_simps(6) space_borel space_lborel)
 qed
 
 lemma set_AE_translation:
@@ -1162,21 +1090,12 @@ lemma AE_scale_measure_iff:
   assumes "r > 0"
   shows "(AE x in (scale_measure r M). P x) \<longleftrightarrow> (AE x in M. P x)"
   unfolding ae_filter_def null_sets_def
-  apply (rewrite space_scale_measure, simp)
-  using assms by (smt (verit) Collect_cong not_gr_zero)
+  using assms by(auto intro!: arg_cong[where f="\<lambda>A. eventually P (Inf A)"] simp: space_scale_measure)
 
 lemma nn_set_integral_cong2:
   assumes "AE x\<in>A in M. f x = g x"
   shows "(\<integral>\<^sup>+x\<in>A. f x \<partial>M) = (\<integral>\<^sup>+x\<in>A. g x \<partial>M)"
-proof -
-  { fix x
-    assume "x \<in> space M"
-    have "(x \<in> A \<longrightarrow> f x = g x) \<longrightarrow> f x * indicator A x = g x * indicator A x" by force }
-  hence "AE x in M. (x \<in> A \<longrightarrow> f x = g x) \<longrightarrow> f x * indicator A x = g x * indicator A x"
-    by (rule AE_I2)
-  hence "AE x in M. f x * indicator A x = g x * indicator A x" using assms AE_mp by auto
-  thus ?thesis by (rule nn_integral_cong_AE)
-qed
+  using assms by(auto intro!: nn_integral_cong_AE)
 
 (* add after Set_Integral.nn_integral_null_delta *)
 lemma nn_integral_minus_null:
@@ -1192,18 +1111,9 @@ lemma set_lebesgue_integral_cong_AE2:
   assumes [measurable]: "A \<in> sets M" "set_borel_measurable M A f" "set_borel_measurable M A g"
   assumes "AE x \<in> A in M. f x = g x"
   shows "(LINT x:A|M. f x) = (LINT x:A|M. g x)"
-proof -
-  let ?fA = "\<lambda>x. indicator A x *\<^sub>R f x" and ?gA = "\<lambda>x. indicator A x *\<^sub>R g x"
-  have "?fA \<in> borel_measurable M" "?gA \<in> borel_measurable M"
-    using assms unfolding set_borel_measurable_def by simp_all
-  moreover have "AE x \<in> A in M. ?fA x = ?gA x" using assms by simp
-  ultimately have "(LINT x:A|M. ?fA x) = (LINT x:A|M. ?gA x)"
-    by (intro set_lebesgue_integral_cong_AE; simp)
-  moreover have "(LINT x:A|M. f x) = (LINT x:A|M. ?fA x)" "(LINT x:A|M. g x) = (LINT x:A|M. ?gA x)"
-    unfolding set_lebesgue_integral_def
-    by (metis indicator_scaleR_eq_if)+
-  ultimately show ?thesis by simp
-qed
+  using assms
+  by(auto simp: set_lebesgue_integral_def set_borel_measurable_def
+      intro!: Bochner_Integration.integral_cong_AE)
 
 proposition set_nn_integral_eq_set_integral:
   assumes "AE x\<in>A in M. 0 \<le> f x" "set_integrable M A f"
@@ -1231,8 +1141,7 @@ proof -
     { fix m n :: nat
       assume "m \<noteq> n"
       hence "(if m \<in> S then B m else {}) \<inter> (if n \<in> S then B n else {}) = {}"
-        apply simp
-        using assms unfolding disjoint_family_on_def by blast }
+        using assms unfolding disjoint_family_on_def by simp }
     thus "\<forall>m::nat\<in>UNIV. \<forall>n::nat\<in>UNIV. m \<noteq> n \<longrightarrow>
       (if m \<in> S then B m else {}) \<inter> (if n \<in> S then B n else {}) = {}"
       by blast
@@ -1281,23 +1190,16 @@ lemma set_nn_integral_indicator:
   by (metis (no_types, lifting) indicator_inter_arith nn_integral_cong sets.Int)
 
 lemma nn_integral_distr_set:
-  assumes "T \<in> measurable M M'" and "f \<in> borel_measurable (distr M M' T)"
-    and "A \<in> sets M'" and "\<And>x. x \<in> space M \<Longrightarrow> T x \<in> A"
+  assumes [measurable]:"T \<in> measurable M M'" and [measurable]:"f \<in> borel_measurable (distr M M' T)"
+    and [measurable]:"A \<in> sets M'" and "\<And>x. x \<in> space M \<Longrightarrow> T x \<in> A"
   shows "integral\<^sup>N (distr M M' T) f = set_nn_integral (distr M M' T) A f"
 proof -
+  have *:"\<And>x. x \<in> space M \<Longrightarrow> f (T x) * indicator (space M') (T x) = f (T x) * indicator A (T x)"
+    using assms measurable_space[OF assms(1)] by(simp add: indicator_def)
   have "integral\<^sup>N (distr M M' T) f = (\<integral>\<^sup>+x\<in>(space M'). f x \<partial>(distr M M' T))"
     by (rewrite nn_set_integral_space[THEN sym], simp)
   also have "\<dots> = (\<integral>\<^sup>+x\<in>A. f x \<partial>(distr M M' T))"
-  proof -
-    have [simp]: "sym_diff (space M') A = space M' - A"
-      using assms by (metis Diff_mono sets.sets_into_space sup.orderE)
-    show ?thesis
-      apply (rule nn_integral_null_delta; simp add: assms)
-      unfolding null_sets_def using assms
-      apply (simp, rewrite emeasure_distr; simp)
-      unfolding vimage_def using emeasure_empty
-      by (metis (no_types, lifting) Diff_disjoint disjoint_iff_not_equal mem_Collect_eq)
-  qed
+    by(auto simp add: nn_integral_distr * intro!: nn_integral_cong)
   finally show ?thesis .
 qed
 
@@ -1333,20 +1235,16 @@ qed
 lemma (in finite_measure) distributed_measure:
   assumes "distributed M N X f"
     and "\<And>x. x \<in> space N \<Longrightarrow>  f x \<ge> 0"
-    and "A \<in> sets N"
+    and [measurable]:"A \<in> sets N"
   shows "measure M (X -` A \<inter> space M) = (\<integral>x. indicator A x * f x \<partial>N)"
 proof -
-  have [simp]: "(\<lambda>x. indicat_real A x * f x) \<in> borel_measurable N"
-    using assms apply (measurable; simp?)
-    using distributed_real_measurable assms by force
+  have [measurable]:"f \<in> borel_measurable N"
+    using assms distributed_real_measurable by blast 
   have "emeasure M (X -` A \<inter> space M) = (\<integral>\<^sup>+x\<in>A. ennreal (f x) \<partial>N)"
     by (rule distributed_emeasure; simp add: assms)
   moreover have "enn2real (\<integral>\<^sup>+x\<in>A. ennreal (f x) \<partial>N) = \<integral>x. indicator A x * f x \<partial>N"
-    apply (rewrite enn2real_nn_integral_eq_integral
-        [where f="\<lambda>x. ennreal (indicator A x * f x)", THEN sym]; (simp add: assms)?)
-    using distributed_emeasure assms
-    by (smt (verit) emeasure_finite indicator_mult_ennreal mult.commute
-        nn_integral_cong top.not_eq_extremum)
+    by(subst integral_eq_nn_integral)
+      (use assms(2) in "auto simp: mult.commute nn_integral_set_ennreal")
   ultimately show ?thesis using measure_def by metis
 qed
 
@@ -1399,7 +1297,8 @@ proof -
         thus ?thesis by simp
       qed
     qed
-    thus ?thesis by (smt (verit) AE_I' DiffI N_null mem_Collect_eq subsetI)
+    thus ?thesis
+      by(auto intro!: AE_I'[OF N_null])
   qed
   moreover have "\<And>i. AE x in M. norm (indicator A x *\<^sub>R s i x) \<le> indicator A x *\<^sub>R w x"
   proof -
@@ -1421,11 +1320,9 @@ qed
 
 lemma absolutely_integrable_on_iff_set_integrable:
   fixes f :: "'a::euclidean_space \<Rightarrow> real"
-  assumes "f \<in> borel_measurable lborel"
-    and  "S \<in> sets lborel"
+  assumes [measurable]:"f \<in> borel_measurable lborel" "S \<in> sets lborel"
   shows "set_integrable lborel S f \<longleftrightarrow> f absolutely_integrable_on S"
-  unfolding set_integrable_def apply (simp, rewrite integrable_completion[THEN sym])
-   apply measurable using assms by simp_all
+  by(simp add: integrable_completion set_integrable_def)
 
 corollary integrable_on_iff_set_integrable_nonneg:
   fixes f :: "'a::euclidean_space \<Rightarrow> real"
@@ -1437,19 +1334,20 @@ corollary integrable_on_iff_set_integrable_nonneg:
 
 lemma integrable_on_iff_set_integrable_nonneg_AE:
   fixes f :: "'a::euclidean_space \<Rightarrow> real"
-  assumes "AE x\<in>S in lborel. f x \<ge> 0" "f \<in> borel_measurable lborel"
-    and  "S \<in> sets lborel"
+  assumes "AE x\<in>S in lborel. f x \<ge> 0"
+    and [measurable]:"f \<in> borel_measurable lborel" "S \<in> sets lborel"
   shows "set_integrable lborel S f \<longleftrightarrow> f integrable_on S"
 proof -
   from assms obtain N where nonneg: "\<And>x. x \<in> S - N \<Longrightarrow> f x \<ge> 0" and null: "N \<in> null_sets lborel"
-    by (smt (verit, ccfv_threshold) AE_E3 Diff_iff UNIV_I space_borel space_lborel)
+    using AE_E3 by force
   let ?g = "\<lambda>x. if x \<in> N then 0 else f x"
   have [simp]: "negligible N" using null negligible_iff_null_sets null_sets_completionI by blast
   have "N \<in> sets lborel" using null by auto
   hence [simp]: "?g \<in> borel_measurable borel" using assms by force
   have "set_integrable lborel S f \<longleftrightarrow> set_integrable lborel S ?g"
   proof -
-    have "AE x\<in>S in lborel. f x = ?g x" by (rule AE_I'[of N], simp_all add: null, blast)
+    have "AE x\<in>S in lborel. f x = ?g x"
+      by(auto intro!: AE_I'[OF null])
     thus ?thesis using assms by (intro set_integrable_cong_AE[of f _ ?g S]; simp)
   qed
   also have "\<dots> \<longleftrightarrow> ?g integrable_on S"
@@ -1500,12 +1398,11 @@ subsection \<open>Set Lebesgue Integrability on Affine Transformation\<close>
 
 lemma set_integrable_Icc_affine_pos_iff:
   fixes f :: "real \<Rightarrow> 'a::{banach, second_countable_topology}" and a b c t :: real
-  assumes "c > 0"
+  assumes [arith]:"c > 0"
   shows "set_integrable lborel {(a-t)/c..(b-t)/c} (\<lambda>x. f (t + c*x))
     \<longleftrightarrow> set_integrable lborel {a..b} f"
-  unfolding set_integrable_def using assms
-  apply (rewrite indicator_Icc_affine_pos_inverse, simp)
-  by (rule lborel_integrable_real_affine_iff) simp
+  unfolding set_integrable_def indicator_Icc_affine_pos_inverse[OF assms]
+  by(intro lborel_integrable_real_affine_iff) simp
 
 corollary set_integrable_Icc_shift:
   fixes f :: "real \<Rightarrow> 'a::{banach, second_countable_topology}" and a b t :: real
@@ -1514,11 +1411,10 @@ corollary set_integrable_Icc_shift:
 
 lemma set_integrable_Ici_affine_pos_iff:
   fixes f :: "real \<Rightarrow> 'a::{banach, second_countable_topology}" and a c t :: real
-  assumes "c > 0"
+  assumes [arith]:"c > 0"
   shows "set_integrable lborel {(a-t)/c..} (\<lambda>x. f (t + c*x))
     \<longleftrightarrow> set_integrable lborel {a..} f"
-  unfolding set_integrable_def using assms
-  apply (rewrite indicator_Ici_affine_pos_inverse, simp)
+  unfolding set_integrable_def indicator_Ici_affine_pos_inverse[OF assms]
   by (rule lborel_integrable_real_affine_iff) simp
 
 corollary set_integrable_Ici_shift:
@@ -1528,11 +1424,10 @@ corollary set_integrable_Ici_shift:
 
 lemma set_integrable_Iic_affine_pos_iff:
   fixes f :: "real \<Rightarrow> 'a::{banach, second_countable_topology}" and b c t :: real
-  assumes "c > 0"
+  assumes [arith]:"c > 0"
   shows "set_integrable lborel {..(b-t)/c} (\<lambda>x. f (t + c*x))
     \<longleftrightarrow> set_integrable lborel {..b} f"
-  unfolding set_integrable_def using assms
-  apply (rewrite indicator_Iic_affine_pos_inverse, simp)
+  unfolding set_integrable_def indicator_Iic_affine_pos_inverse[OF assms]
   by (rule lborel_integrable_real_affine_iff) simp
 
 corollary set_integrable_Iic_shift:
@@ -1542,11 +1437,10 @@ corollary set_integrable_Iic_shift:
 
 lemma set_integrable_Icc_affine_neg_iff:
   fixes f :: "real \<Rightarrow> 'a::{banach, second_countable_topology}" and a b c t :: real
-  assumes "c < 0"
+  assumes [arith]:"c < 0"
   shows "set_integrable lborel {(b-t)/c..(a-t)/c} (\<lambda>x. f (t + c*x))
     \<longleftrightarrow> set_integrable lborel {a..b} f"
-  unfolding set_integrable_def using assms
-  apply (rewrite indicator_Icc_affine_neg_inverse, simp)
+  unfolding set_integrable_def indicator_Icc_affine_neg_inverse[OF assms]
   by (rule lborel_integrable_real_affine_iff) simp
 
 corollary set_integrable_Icc_reverse:
@@ -1556,11 +1450,10 @@ corollary set_integrable_Icc_reverse:
 
 lemma set_integrable_Ici_affine_neg_iff:
   fixes f :: "real \<Rightarrow> 'a::{banach, second_countable_topology}" and b c t :: real
-  assumes "c < 0"
+  assumes [arith]:"c < 0"
   shows "set_integrable lborel {(b-t)/c..} (\<lambda>x. f (t + c*x))
     \<longleftrightarrow> set_integrable lborel {..b} f"
-  unfolding set_integrable_def using assms
-  apply (rewrite indicator_Ici_affine_neg_inverse, simp)
+  unfolding set_integrable_def indicator_Ici_affine_neg_inverse[OF assms]
   by (rule lborel_integrable_real_affine_iff) simp
 
 corollary set_integrable_Ici_reverse:
@@ -1570,11 +1463,10 @@ corollary set_integrable_Ici_reverse:
 
 lemma set_integrable_Iic_affine_neg_iff:
   fixes f :: "real \<Rightarrow> 'a::{banach, second_countable_topology}" and a c t :: real
-  assumes "c < 0"
+  assumes [arith]:"c < 0"
   shows "set_integrable lborel {..(a-t)/c} (\<lambda>x. f (t + c*x))
     \<longleftrightarrow> set_integrable lborel {a..} f"
-  unfolding set_integrable_def using assms
-  apply (rewrite indicator_Iic_affine_neg_inverse, simp)
+  unfolding set_integrable_def indicator_Iic_affine_neg_inverse[OF assms]
   by (rule lborel_integrable_real_affine_iff) simp
 
 corollary set_integrable_Iic_reverse:
@@ -1586,10 +1478,9 @@ subsection \<open>Set Lebesgue Integral on Affine Transformation\<close>
 
 lemma lborel_set_integral_Icc_affine_pos:
   fixes f :: "real \<Rightarrow> 'a :: {banach, second_countable_topology}" and a b c :: real
-  assumes "c > 0"
+  assumes [arith]:"c > 0"
   shows "(\<integral>x\<in>{a..b}. f x \<partial>lborel) = c *\<^sub>R (\<integral>x\<in>{(a-t)/c..(b-t)/c}. f (t + c*x) \<partial>lborel)"
-  unfolding set_lebesgue_integral_def using assms
-  apply (rewrite indicator_Icc_affine_pos_inverse, simp)
+  unfolding set_lebesgue_integral_def indicator_Icc_affine_pos_inverse[OF assms]
   using lborel_integral_real_affine[where c=c] by force
 
 corollary lborel_set_integral_Icc_shift:
@@ -1599,10 +1490,9 @@ corollary lborel_set_integral_Icc_shift:
 
 lemma lborel_set_integral_Ici_affine_pos:
   fixes f :: "real \<Rightarrow> 'a :: {banach, second_countable_topology}" and a c :: real
-  assumes "c > 0"
+  assumes [arith]:"c > 0"
   shows "(\<integral>x\<in>{a..}. f x \<partial>lborel) = c *\<^sub>R (\<integral>x\<in>{(a-t)/c..}. f (t + c*x) \<partial>lborel)"
-  unfolding set_lebesgue_integral_def using assms
-  apply (rewrite indicator_Ici_affine_pos_inverse, simp)
+  unfolding set_lebesgue_integral_def indicator_Ici_affine_pos_inverse[OF assms]
   using lborel_integral_real_affine[where c=c] by force
 
 corollary lborel_set_integral_Ici_shift:
@@ -1612,10 +1502,9 @@ corollary lborel_set_integral_Ici_shift:
 
 lemma lborel_set_integral_Iic_affine_pos:
   fixes f :: "real \<Rightarrow> 'a :: {banach, second_countable_topology}" and b c :: real
-  assumes "c > 0"
+  assumes [arith]:"c > 0"
   shows "(\<integral>x\<in>{..b}. f x \<partial>lborel) = c *\<^sub>R (\<integral>x\<in>{..(b-t)/c}. f (t + c*x) \<partial>lborel)"
-  unfolding set_lebesgue_integral_def using assms
-  apply (rewrite indicator_Iic_affine_pos_inverse, simp)
+  unfolding set_lebesgue_integral_def indicator_Iic_affine_pos_inverse[OF assms]
   using lborel_integral_real_affine[where c=c] by force
 
 corollary lborel_set_integral_Iic_shift:
@@ -1625,10 +1514,9 @@ corollary lborel_set_integral_Iic_shift:
 
 lemma lborel_set_integral_Icc_affine_neg:
   fixes f :: "real \<Rightarrow> 'a :: {banach, second_countable_topology}" and a b c :: real
-  assumes "c < 0"
+  assumes [arith]:"c < 0"
   shows "(\<integral>x\<in>{a..b}. f x \<partial>lborel) = -c *\<^sub>R (\<integral>x\<in>{(b-t)/c..(a-t)/c}. f (t + c*x) \<partial>lborel)"
-  unfolding set_lebesgue_integral_def using assms
-  apply (rewrite indicator_Icc_affine_neg_inverse, simp)
+  unfolding set_lebesgue_integral_def indicator_Icc_affine_neg_inverse[OF assms]
   using lborel_integral_real_affine[where c=c] by force
 
 corollary lborel_set_integral_Icc_reverse:
@@ -1638,10 +1526,9 @@ corollary lborel_set_integral_Icc_reverse:
 
 lemma lborel_set_integral_Ici_affine_neg:
   fixes f :: "real \<Rightarrow> 'a :: {banach, second_countable_topology}" and b c :: real
-  assumes "c < 0"
+  assumes [arith]:"c < 0"
   shows "(\<integral>x\<in>{..b}. f x \<partial>lborel) = -c *\<^sub>R (\<integral>x\<in>{(b-t)/c..}. f (t + c*x) \<partial>lborel)"
-  unfolding set_lebesgue_integral_def using assms
-  apply (rewrite indicator_Ici_affine_neg_inverse, simp)
+  unfolding set_lebesgue_integral_def indicator_Ici_affine_neg_inverse[OF assms]
   using lborel_integral_real_affine[where c=c] by force
 
 corollary lborel_set_integral_Ici_reverse:
@@ -1651,10 +1538,9 @@ corollary lborel_set_integral_Ici_reverse:
 
 lemma lborel_set_integral_Iic_affine_neg:
   fixes f :: "real \<Rightarrow> 'a :: {banach, second_countable_topology}" and a c :: real
-  assumes "c < 0"
+  assumes [arith]:"c < 0"
   shows "(\<integral>x\<in>{a..}. f x \<partial>lborel) = -c *\<^sub>R (\<integral>x\<in>{..(a-t)/c}. f (t + c*x) \<partial>lborel)"
-  unfolding set_lebesgue_integral_def using assms
-  apply (rewrite indicator_Iic_affine_neg_inverse, simp)
+  unfolding set_lebesgue_integral_def indicator_Iic_affine_neg_inverse[OF assms]
   using lborel_integral_real_affine[where c=c] by force
 
 corollary lborel_set_integral_Iic_reverse:
@@ -1680,7 +1566,7 @@ corollary set_integrable_Ici_equiv:
   fixes f :: "real \<Rightarrow> 'a::{banach, second_countable_topology}" and a b :: real
   assumes "\<And>c d. set_integrable lborel {c..d} f"
   shows "set_integrable lborel {a..} f \<longleftrightarrow> set_integrable lborel {b..} f"
-  using set_integrable_Ici_equiv_aux assms by (smt (verit))
+  using set_integrable_Ici_equiv_aux assms by (metis linorder_linear)
 
 lemma set_integrable_Iic_equiv:
   fixes f :: "real \<Rightarrow> real" and a b :: real
@@ -1713,11 +1599,11 @@ lemma nn_integral_suminf_Ico_real_nat:
 (* Another Version of theorem integral_test *)
 theorem set_integrable_iff_summable:
   fixes a::real and f :: "real \<Rightarrow> real"
-  assumes "antimono_on {a..} f" "\<And>x. a \<le> x \<Longrightarrow> f x \<ge> 0" "f \<in> borel_measurable lborel"
+  assumes "antimono_on {a..} f" "\<And>x. a \<le> x \<Longrightarrow> f x \<ge> 0"
+    and [measurable]:"f \<in> borel_measurable lborel"
   shows "set_integrable lborel {a..} f \<longleftrightarrow> summable (\<lambda>k. f (a+k))"
 proof
   assume asm: "set_integrable lborel {a..} f"
-  have [measurable]: "(\<lambda>x. ennreal (f x)) \<in> borel_measurable lborel" using assms by simp
   have "\<forall>k\<ge>0. norm (f (a+(k+1::nat))) \<le> (\<integral>x\<in>{a+k..<a+k+1}. f x \<partial>lborel)"
   proof -
     { fix k::nat
@@ -1726,28 +1612,27 @@ proof
       also have "\<dots> = (\<integral>x\<in>{a+k..<a+k+1}. f (a+k+1) \<partial>lborel)"
         unfolding set_lebesgue_integral_def by simp
       also have "\<dots> \<le> (\<integral>x\<in>{a+k..<a+k+1}. f x \<partial>lborel)"
-        apply (rule set_integral_mono, simp)
-         apply (rule set_integrable_restrict_space[of lborel "{a..}"], simp add: asm)
-         apply (rewrite sets_restrict_space, force)
-        using assms unfolding mono_on_def monotone_on_def by simp
+        using assms(1)
+        by(intro set_integral_mono[OF _ set_integrable_restrict_space[of lborel "{a..}"]])
+          (auto simp: asm sets_restrict_space monotone_on_def)
       finally have "norm (f (a+(k+1::nat))) \<le> (\<integral>x\<in>{a+k..<a+k+1}. f x \<partial>lborel)" . }
     thus ?thesis by simp
   qed
   moreover have "summable (\<lambda>k. \<integral>x\<in>{a+k..<a+k+1}. f x \<partial>lborel)"
   proof -
     have "(\<integral>\<^sup>+x\<in>{a..}. ennreal (f x) \<partial>lborel) \<noteq> \<infinity>"
-      using asm unfolding set_integrable_def apply simp
-      by (smt (verit) indicator_mult_ennreal infinity_ennreal_def mult.commute
-          nn_integral_cong real_integrable_def)
-    thus ?thesis
-      apply (rewrite in asm nn_integral_suminf_Ico_real_nat, simp)
-      apply (rule summable_suminf_not_top)
-      using assms apply (intro set_integral_nonneg, force)
-      apply (rewrite set_nn_integral_eq_set_integral[THEN sym], simp add: assms)
-      by (rule set_integrable_subset[of lborel "{a..}"], simp_all add: asm) force
+      using asm unfolding set_integrable_def
+      by (metis (no_types, lifting) ext Groups.mult_ac(2) indicator_mult_ennreal
+          integrableD(2) real_scaleR_def)
+    moreover have "(\<Sum>i. (\<integral>\<^sup>+x\<in>{a + real i..<a + real i + 1}. ennreal (f x) \<partial>lborel))
+                 = (\<Sum>i. ennreal (set_lebesgue_integral lborel {a + real i..<a + real i + 1} f))"
+      using assms(2) by(auto intro!: suminf_cong set_nn_integral_eq_set_integral set_integrable_subset[OF asm])
+    ultimately show ?thesis
+      by(auto simp: nn_integral_suminf_Ico_real_nat 
+          intro!: summable_suminf_not_top set_integral_nonneg assms(2))
   qed
   ultimately have "summable (\<lambda>k. f (a+(k+1::nat)))"
-    using summable_comparison_test by (smt (verit, del_insts))
+    using summable_comparison_test by (metis (no_types, lifting))
   thus "summable (\<lambda>k. f (a+k))" using summable_iff_shift by blast
 next
   assume asm: "summable (\<lambda>k. f (a+k))"
@@ -1762,17 +1647,17 @@ next
       have "\<And>(k::nat) x. x\<in>{a+k..<a+k+1} \<Longrightarrow> f x \<le> f (a+k)"
         using assms unfolding monotone_on_def by auto
       thus ?thesis
-        apply (intro suminf_le, simp_all)
-        by (rule nn_integral_mono)
-          (metis (no_types, opaque_lifting) atLeastLessThan_iff dual_order.refl ennreal_leI
-            indicator_simps(2) mult_eq_0_iff mult_mono zero_le)
+        by(intro suminf_le nn_integral_mono)
+          (auto simp: indicator_def intro!: ennreal_leI)
     qed
     also have "\<dots> = (\<Sum>k. ennreal (f (a+k)))"
       apply (rule suminf_cong)
       by (rewrite nn_integral_cmult_indicator; simp)
     also have "\<dots> < \<infinity>"
       unfolding infinity_ennreal_def apply (rewrite less_top[THEN sym])
-      using asm assms by (smt (verit) of_nat_0_le_iff suminf_cong suminf_ennreal2 top_neq_ennreal)
+      using asm assms
+      by (metis (mono_tags, lifting) ennreal_suminf_neq_top le_add_same_cancel1
+          of_nat_0_le_iff suminf_cong)
     finally show ?thesis .
   qed
   moreover have "set_borel_measurable lborel {a..} f"

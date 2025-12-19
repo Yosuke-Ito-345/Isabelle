@@ -60,7 +60,6 @@ lemma abg_constant_on_fn: "abg constant_on {f+n..}"
 
 end
 
-
 subsection \<open>Deferred Continuous Perpetual Annuity\<close>
 
 locale defer_cont_perp_ann = interest +

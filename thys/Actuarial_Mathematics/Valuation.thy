@@ -371,10 +371,7 @@ end
 
 subsection \<open>Term Life Annuity\<close>
 
-locale val_term_life_ann = val_life_ann +
-  fixes n::real
-  assumes n_nonneg[simp]: "n \<ge> 0" and
-    abg_eq_fn: "\<And>t. t \<ge> f + n \<Longrightarrow> abg t = abg (f + n)"
+locale val_term_life_ann = val_life_ann + term_annuity
 begin 
 
 lemma ab_eq_fn:
@@ -417,9 +414,6 @@ sublocale val_term_life_ann \<subseteq> val_term_life i l f ab tp n
 
 context val_term_life_ann
 begin
-
-corollary abg_constant_on_fn: "abg constant_on {f+n..}"
-  using abg_eq_fn by (meson atLeast_iff constant_on_def)
 
 lemma ennAPV_term_nn_integral_interval_measure_abg:
   assumes "x < $\<psi>"
@@ -888,4 +882,3 @@ end
  *)
 
 end
-

@@ -175,7 +175,7 @@ locale val_term_life = val +
 begin
 
 lemma ab_constant_on_fn:
-  fixes \<theta> t :: real
+  fixes \<theta>::real
   shows "(ab \<theta>) constant_on {f+n..}"
   using ab_eq_fn by (meson atLeast_iff constant_on_def)
 

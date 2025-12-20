@@ -444,65 +444,6 @@ sublocale val_defer_cont_whole_life_ann \<subseteq> val_life_ann i l f abg
 context val_defer_cont_whole_life_ann
 begin
 
-lemma DERIV_abg:
-  fixes t::real
-  assumes "f < t"
-  shows "DERIV abg t :> 1"
-proof -
-  have "DERIV (\<lambda>s. s - f) t :> 1 - 0" by (intro derivative_intros)
-  moreover have "\<forall>\<^sub>F s in nhds t. abg s = s - f"
-    apply (rewrite eventually_nhds_metric)
-    by (rule exI[of _ "t-f"], auto simp add: assms abg_def dist_real_def)
-  ultimately show ?thesis by (rewrite DERIV_cong_ev; simp)
-qed
-
-corollary abg_differentiable_on_f: "abg differentiable_on {f<..}"
-  by (meson DERIV_abg differentiable_at_withinI differentiable_on_def
-      greaterThan_iff real_differentiable_def)
-
-corollary deriv_abg:
-  fixes t::real
-  assumes "f < t"
-  shows "deriv abg t = 1"
-  using assms DERIV_abg DERIV_imp_deriv by blast
-
-lemma set_nn_integral_interval_measure_abg:
-  fixes g :: "real \<Rightarrow> real" and A :: "real set"
-  assumes "g \<in> borel_measurable borel" and
-    A_borel: "A \<in> sets borel" "A \<subseteq> {f..}"
-  shows "(\<integral>\<^sup>+t\<in>A. g t \<partial>(IM abg)) = (\<integral>\<^sup>+t\<in>A. g t \<partial>lborel)"
-proof -
-
-  wlog A_f: "A \<subseteq> {f<..}" generalizing A keeping A_borel
-  proof -
-    from assms negation have fA: "f \<in> A" using dual_order.strict_iff_order by auto
-    hence "(\<integral>\<^sup>+t\<in>A. g t \<partial>(IM abg)) = (\<integral>\<^sup>+t\<in>{f}. g t \<partial>(IM abg)) + (\<integral>\<^sup>+t\<in>A-{f}. g t \<partial>(IM abg))"
-      using assms by (rewrite nn_integral_disjoint_pair[THEN sym]; simp add: insert_absorb)
-    also have "\<dots> = (\<integral>\<^sup>+t\<in>A-{f}. g t \<partial>lborel)"
-    proof -
-      have "(\<integral>\<^sup>+t\<in>{f}. g t \<partial>(IM abg)) = 0" using interval_measure_singleton_continuous by simp
-      moreover have "(\<integral>\<^sup>+t\<in>A-{f}. g t \<partial>(IM abg)) = (\<integral>\<^sup>+t\<in>A-{f}. g t \<partial>lborel)"
-        using assms A_borel by (intro hypothesis; force)
-      ultimately show ?thesis by simp
-    qed
-    also have "\<dots> = (\<integral>\<^sup>+t\<in>{f}. g t \<partial>lborel) + (\<integral>\<^sup>+t\<in>A-{f}. g t \<partial>lborel)" by simp
-    also have "\<dots> = (\<integral>\<^sup>+t\<in>A. g t \<partial>lborel)"
-      using assms fA by (rewrite nn_integral_disjoint_pair[THEN sym]; simp add: insert_absorb)
-    finally show ?thesis .
-  qed
-
-  thus ?thesis
-  proof -
-    have "(\<integral>\<^sup>+t\<in>A. g t \<partial>(IM abg)) = (\<integral>\<^sup>+t\<in>A. ennreal (g t) * ennreal (deriv abg t) \<partial>lborel)"
-      using assms A_borel A_f abg_differentiable_on_f deriv_abg
-      by (rewrite set_nn_integral_interval_measure_deriv[of abg f \<infinity>]; simp)
-    also have "\<dots> = (\<integral>\<^sup>+t\<in>A. g t \<partial>lborel)"
-      apply (intro set_nn_integral_cong)
-      using deriv_abg A_f by force+
-    finally show ?thesis .
-  qed
-qed
-
 lemma
   fixes x::real
   assumes "i > 0" "x < $\<psi>"

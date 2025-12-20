@@ -500,65 +500,6 @@ sublocale val_defer_cont_term_life_ann \<subseteq> val_term_life_ann i l f abg n
 context val_defer_cont_term_life_ann
 begin
 
-lemma DERIV_abg:
-  fixes t::real
-  assumes "f < t" "t < f + n"
-  shows "DERIV abg t :> 1"
-proof -
-  have "DERIV (\<lambda>s. s - f) t :> 1 - 0" by (intro derivative_intros)
-  moreover have "\<forall>\<^sub>F s in nhds t. abg s = s - f"
-    apply (rewrite eventually_nhds_metric)
-    by (rule exI[of _ "min (t-f) (f+n-t)"], auto simp add: assms abg_def dist_real_def)
-  ultimately show ?thesis
-    by (rewrite DERIV_cong_ev; simp)
-qed
-
-corollary abg_differentiable_on_f_fn : "abg differentiable_on {f <..< f+n}"
-  by (meson DERIV_abg differentiable_at_withinI differentiable_on_def
-      greaterThanLessThan_iff real_differentiable_def)
-
-corollary deriv_abg:
-  fixes t::real
-  assumes "f < t" "t < f + n"
-  shows "deriv abg t = 1"
-  using assms DERIV_abg DERIV_imp_deriv by blast
-
-lemma set_nn_integral_interval_measure_abg:
-  fixes g :: "real \<Rightarrow> real" and A :: "real set"
-  assumes "g \<in> borel_measurable borel" and
-    A_borel: "A \<in> sets borel" "A \<subseteq> {f..f+n}"
-  shows "(\<integral>\<^sup>+t\<in>A. g t \<partial>(IM abg)) = (\<integral>\<^sup>+t\<in>A. g t \<partial>lborel)"
-proof -
-
-  wlog A_f_fn: "A \<subseteq> {f<..<f+n}" generalizing A keeping A_borel
-  proof -
-    have "(\<integral>\<^sup>+t\<in>A. g t \<partial>(IM abg)) = (\<integral>\<^sup>+t\<in>A-{f}. g t \<partial>(IM abg))"
-      using assms interval_measure_singleton_continuous
-      by (rewrite nn_integral_minus_null; simp add: null_sets_def)
-    also have "\<dots> = (\<integral>\<^sup>+t\<in>A-{f}-{f+n}. g t \<partial>(IM abg))"
-      using assms interval_measure_singleton_continuous
-      by (rewrite nn_integral_minus_null; simp add: null_sets_def)
-    also have "\<dots> = (\<integral>\<^sup>+t\<in>A-{f}-{f+n}. g t \<partial>lborel)"
-      using hypothesis[of "A-{f}-{f+n}"] assms by force
-    also have "\<dots> = (\<integral>\<^sup>+t\<in>A-{f}. g t \<partial>lborel)"
-      using assms by (rewrite nn_integral_minus_null[THEN sym]; force)
-    also have "\<dots> = (\<integral>\<^sup>+t\<in>A. g t \<partial>lborel)"
-      using assms by (rewrite nn_integral_minus_null[THEN sym]; force)
-    finally show ?thesis .
-  qed
-
-  thus ?thesis
-  proof -
-    have "(\<integral>\<^sup>+t\<in>A. g t \<partial>(IM abg)) = (\<integral>\<^sup>+t\<in>A. ennreal (g t) * ennreal (deriv abg t) \<partial>lborel)"
-      using assms A_borel A_f_fn abg_differentiable_on_f_fn deriv_abg
-      by (rewrite set_nn_integral_interval_measure_deriv[of abg f "f+n"]; simp)
-    also have "\<dots> = (\<integral>\<^sup>+t\<in>A. g t \<partial>lborel)"
-      apply (intro set_nn_integral_cong)
-      using deriv_abg A_f_fn by force+
-    finally show ?thesis .
-  qed
-qed
-
 lemma
   fixes x::real
   assumes "x < $\<psi>"
@@ -630,7 +571,7 @@ begin
 
 definition APV_defer_cont_whole_life_ann :: "real \<Rightarrow> real \<Rightarrow> real" (\<open>$a'''_{_\<bar>_}\<close> [0,0] 200)
   where "$a'_{f\<bar>x} \<equiv> val.APV i l
-    (val_life_ann.ab (val_defer_cont_whole_life_ann.abg f)) val_life_ann.tp x"
+    (val_life_ann.ab (defer_cont_perp_ann.abg f)) val_life_ann.tp x"
 
 abbreviation APV_cont_whole_life_ann :: "real \<Rightarrow> real" (\<open>$a'''_{_}\<close> [0] 200)
   where "$a'_{x} \<equiv> $a'_{0\<bar>x}"
@@ -641,8 +582,7 @@ proposition
   if "f \<ge> 0" "i > 0" "x < $\<psi>" for f x :: real
 proof -
   have [simp]: "val_defer_cont_whole_life_ann i l f"
-    apply (intro val_defer_cont_whole_life_ann.intro, simp add: actuarial_model_axioms)
-    using that by (intro val_defer_cont_whole_life_ann_axioms.intro) simp
+    by standard (rule that)
   show "set_integrable lborel {f..} (\<lambda>t. $v.^t * $p_{t&x})"
     by (rule val_defer_cont_whole_life_ann.APV_set_integrable; simp add: that)
   show "$a'_{f\<bar>x} = (LBINT t:{f..}. $v.^t * $p_{t&x})"
@@ -657,7 +597,7 @@ proposition a'_whole_life_calc: "$a'_{x} = (LBINT t:{0..}. $v.^t * $p_{t&x})"
 definition
   APV_defer_cont_term_life_ann :: "real \<Rightarrow> real \<Rightarrow> real \<Rightarrow> real" (\<open>$a'''_{_\<bar>_;_\<rceil>}\<close> [0,0,0] 200)
   where "$a'_{f\<bar>x;n\<rceil>} \<equiv> val.APV i l
-    (val_life_ann.ab (val_defer_cont_term_life_ann.abg f n)) val_life_ann.tp x"
+    (val_life_ann.ab (defer_cont_term_ann.abg f n)) val_life_ann.tp x"
 
 abbreviation APV_cont_term_life_ann :: "real \<Rightarrow> real \<Rightarrow> real" (\<open>$a'''_{_;_\<rceil>}\<close> [0,0] 200)
   where "$a'_{x;n\<rceil>} \<equiv> $a'_{0\<bar>x;n\<rceil>}"
@@ -668,8 +608,7 @@ proposition
   if "f \<ge> 0" "n \<ge> 0" "x < $\<psi>" for f n x :: real
 proof -
   have [simp]: "val_defer_cont_term_life_ann i l f n"
-    apply (intro val_defer_cont_term_life_ann.intro, simp add: actuarial_model_axioms)
-    using that by (intro val_defer_cont_term_life_ann_axioms.intro) simp
+    by (standard; simp add: that)
   show "set_integrable lborel {f..f+n} (\<lambda>t. $v.^t * $p_{t&x})"
     by (rule val_defer_cont_term_life_ann.APV_set_integrable; simp add: that)
   show "$a'_{f\<bar>x;n\<rceil>} = (LBINT t:{f..f+n}. $v.^t * $p_{t&x})"
@@ -695,8 +634,7 @@ proof -
     have [simp]: "{f..f+n} \<inter> {f+n<..} = {}" using that by auto
     have [simp]: "{f..f+n} \<union> {f+n<..} = {f..}" using that by auto
     have "set_integrable lborel {f+n<..} (\<lambda>t. $v.^t * $p_{t&x})"
-      by (rule set_integrable_subset[OF a'_defer_whole_life_set_integrable, of f])
-        (auto simp add: that)
+      by (rule set_integrable_subset[OF a'_defer_whole_life_set_integrable, of f], auto intro: that)
     thus ?thesis
       using a'_defer_term_life_set_integrable that by (rewrite set_integral_Un[THEN sym]; simp)
   qed

@@ -231,6 +231,70 @@ end
 sublocale defer_cont_term_ann \<subseteq> term_annuity i f abg n
   by (standard; simp add: abg_fn)
 
+context defer_cont_term_ann
+begin
+
+lemma DERIV_abg:
+  fixes t::real
+  assumes "f < t" "t < f + n"
+  shows "DERIV abg t :> 1"
+proof -
+  have "DERIV (\<lambda>s. s - f) t :> 1 - 0" by (intro derivative_intros)
+  moreover have "\<forall>\<^sub>F s in nhds t. abg s = s - f"
+    apply (rewrite eventually_nhds_metric)
+    by (rule exI[of _ "min (t-f) (f+n-t)"], auto simp add: assms abg_def dist_real_def)
+  ultimately show ?thesis
+    by (rewrite DERIV_cong_ev; simp)
+qed
+
+corollary abg_differentiable_on_f_fn : "abg differentiable_on {f <..< f+n}"
+  by (meson DERIV_abg differentiable_at_withinI differentiable_on_def
+      greaterThanLessThan_iff real_differentiable_def)
+
+corollary deriv_abg:
+  fixes t::real
+  assumes "f < t" "t < f + n"
+  shows "deriv abg t = 1"
+  using assms DERIV_abg DERIV_imp_deriv by blast
+
+lemma set_nn_integral_interval_measure_abg:
+  fixes g :: "real \<Rightarrow> real" and A :: "real set"
+  assumes "g \<in> borel_measurable borel" and
+    A_borel: "A \<in> sets borel" "A \<subseteq> {f..f+n}"
+  shows "(\<integral>\<^sup>+t\<in>A. g t \<partial>(IM abg)) = (\<integral>\<^sup>+t\<in>A. g t \<partial>lborel)"
+proof -
+
+  wlog A_f_fn: "A \<subseteq> {f<..<f+n}" generalizing A keeping A_borel
+  proof -
+    have "(\<integral>\<^sup>+t\<in>A. g t \<partial>(IM abg)) = (\<integral>\<^sup>+t\<in>A-{f}. g t \<partial>(IM abg))"
+      using assms interval_measure_singleton_continuous
+      by (rewrite nn_integral_minus_null; simp add: null_sets_def)
+    also have "\<dots> = (\<integral>\<^sup>+t\<in>A-{f}-{f+n}. g t \<partial>(IM abg))"
+      using assms interval_measure_singleton_continuous
+      by (rewrite nn_integral_minus_null; simp add: null_sets_def)
+    also have "\<dots> = (\<integral>\<^sup>+t\<in>A-{f}-{f+n}. g t \<partial>lborel)"
+      using hypothesis[of "A-{f}-{f+n}"] assms by force
+    also have "\<dots> = (\<integral>\<^sup>+t\<in>A-{f}. g t \<partial>lborel)"
+      using assms by (rewrite nn_integral_minus_null[THEN sym]; force)
+    also have "\<dots> = (\<integral>\<^sup>+t\<in>A. g t \<partial>lborel)"
+      using assms by (rewrite nn_integral_minus_null[THEN sym]; force)
+    finally show ?thesis .
+  qed
+
+  thus ?thesis
+  proof -
+    have "(\<integral>\<^sup>+t\<in>A. g t \<partial>(IM abg)) = (\<integral>\<^sup>+t\<in>A. ennreal (g t) * ennreal (deriv abg t) \<partial>lborel)"
+      using assms A_borel A_f_fn abg_differentiable_on_f_fn deriv_abg
+      by (rewrite set_nn_integral_interval_measure_deriv[of abg f "f+n"]; simp)
+    also have "\<dots> = (\<integral>\<^sup>+t\<in>A. g t \<partial>lborel)"
+      apply (intro set_nn_integral_cong)
+      using deriv_abg A_f_fn by force+
+    finally show ?thesis .
+  qed
+qed
+
+end
+
 context interest
 begin
 
@@ -245,8 +309,7 @@ proposition
   if "f \<ge> 0" "i > 0" for f::real
 proof -
   have [simp]: "defer_cont_perp_ann i f"
-    apply (intro defer_cont_perp_ann.intro, simp add: interest_axioms)
-    using that by (intro defer_cont_perp_ann_axioms.intro) simp
+    by (standard, rule that)
   show "set_integrable lborel {f..} (\<lambda>t. $v.^t)"
     by (rule defer_cont_perp_ann.PV_set_integrable; simp add: that)
   show "$a'_{f\<bar>\<infinity>\<rceil>} = (LBINT t:{f..}. $v.^t)"

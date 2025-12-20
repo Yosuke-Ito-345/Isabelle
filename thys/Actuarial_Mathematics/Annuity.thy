@@ -184,6 +184,53 @@ qed
 
 end
 
+subsection \<open>Deferred Continuous Term Annuity\<close>
+
+locale defer_cont_term_ann = interest +
+  fixes f n :: real
+  assumes f_nonneg[simp]: "f \<ge> 0" and
+    n_nonneg[simp]: "n \<ge> 0"
+begin
+
+definition abg :: "real \<Rightarrow> real" where "abg t \<equiv> max (min t (f + n) - f) 0"
+
+lemma abg_f_0[simp]:
+  fixes t::real
+  assumes "t < f"
+  shows "abg t = 0"
+  unfolding abg_def using assms by simp
+
+lemma abg_f_fn:
+  fixes t::real
+  assumes "f \<le> t" "t < f + n"
+  shows "abg t = t - f"
+  unfolding abg_def using assms by simp
+
+lemma abg_fn:
+  fixes t::real
+  assumes "f + n \<le> t"
+  shows "abg t = n"
+  unfolding abg_def using assms by simp
+
+lemma abg_continuous[simp]:
+  fixes t::real
+  shows "isCont abg t"
+  unfolding abg_def by (simp add: continuous_max continuous_min)
+
+corollary
+  fixes t::real
+  shows abg_right_continuous[simp]: "continuous (at_right t) abg" and
+    abg_left_continuous[simp]: "continuous (at_left t) abg"
+  by (simp add: continuous_at_imp_continuous_within)+
+
+lemma abg_mono[simp]: "mono abg"
+  unfolding abg_def by (simp add: monoI)
+
+end
+
+sublocale defer_cont_term_ann \<subseteq> term_annuity i f abg n
+  by (standard; simp add: abg_fn)
+
 context interest
 begin
 

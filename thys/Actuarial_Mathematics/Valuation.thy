@@ -436,34 +436,7 @@ end
 
 subsection \<open>Deferred Continuous Whole Life Annuity\<close>
 
-locale val_defer_cont_whole_life_ann = actuarial_model +
-  fixes f::real
-  assumes f_nonneg[simp]: "f \<ge> 0"
-begin
-
-definition abg :: "real \<Rightarrow> real" where "abg t \<equiv> max (t - f) 0"
-
-lemma abg_f_0[simp]:
-  fixes t::real
-  assumes "t < f"
-  shows "abg t = 0"
-  unfolding abg_def using assms by simp
-
-lemma abg_continuous[simp]:
-  fixes t::real
-  shows "isCont abg t"
-  unfolding abg_def by (simp add: continuous_max)
-
-corollary
-  fixes t::real
-  shows abg_right_continuous[simp]: "continuous (at_right t) abg" and
-    abg_left_continuous[simp]: "continuous (at_left t) abg"
-  by (simp add: continuous_at_imp_continuous_within)+
-
-lemma abg_mono[simp]: "mono abg"
-  unfolding abg_def by (simp add: monoI)
-
-end
+locale val_defer_cont_whole_life_ann = actuarial_model + defer_cont_perp_ann
 
 sublocale val_defer_cont_whole_life_ann \<subseteq> val_life_ann i l f abg
   by (standard; simp)

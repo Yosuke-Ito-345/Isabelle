@@ -293,6 +293,30 @@ proof -
   qed
 qed
 
+lemma
+  PV_set_integrable: "set_integrable lborel {f..f+n} (\<lambda>t. $v.^t)" and
+  PV_calc: "PV = (LBINT t:{f..f+n}. $v.^t)"
+proof -
+
+  text \<open>Proof of "PV_set_integrable"\<close>
+  show PV_set_integrable: "set_integrable lborel {f..f+n} (\<lambda>t. $v.^t)"
+    using set_integrable_powr_Icc v_pos by simp
+
+  text \<open>Proof of "PV_calc"\<close>
+  have "abg constant_on {f+n<..}"
+    using abg_constant_on_fn by (meson Ioi_le_Ico constant_on_subset)
+  hence "ennPV = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
+    unfolding ennPV_def using abg_constant_on_f
+    by (rewrite nn_integral_interval_measure_Icc; simp)
+  also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t \<partial>lborel)"
+    by (rewrite set_nn_integral_interval_measure_abg; simp)
+  also have "\<dots> = ennreal (LBINT t:{f..f+n}. $v.^t)"
+    by (rule set_nn_integral_eq_set_integral; simp add: PV_nonneg PV_set_integrable)
+  finally have "ennPV = ennreal (LBINT t:{f..f+n}. $v.^t)" .
+  thus "PV = (LBINT t:{f..f+n}. $v.^t)" using ennreal_inj ennPV_PV PV_nonneg by simp
+
+qed
+
 end
 
 context interest
@@ -316,9 +340,31 @@ proof -
     unfolding PV_defer_cont_perp_ann_def using that
     by (rewrite defer_cont_perp_ann.PV_calc; simp)
 qed
-
+(* TODO : add a'_prep_set_integrable; SO DO others *)
 proposition a'_perp_calc: "$a'_\<infinity>\<rceil> = (LBINT t:{0..}. $v.^t)" if "i > 0"
   using that a'_defer_perp_calc by simp
+
+definition PV_defer_cont_term_ann :: "real \<Rightarrow> real \<Rightarrow> real" (\<open>$a'''_{_\<bar>_\<rceil>}\<close> [0,0] 200)
+  where "$a'_{f\<bar>n\<rceil>} \<equiv> annuity.PV i (defer_cont_term_ann.abg f n)"
+
+abbreviation PV_con_term_ann :: "real \<Rightarrow> real" (\<open>$a'''__\<rceil>\<close> [0] 200) where "$a'_n\<rceil> \<equiv> $a'_{0\<bar>n\<rceil>}"
+
+proposition
+  a'_defer_term_set_integrable: "set_integrable lborel {f..f+n} (\<lambda>t. $v.^t)" and
+  a'_defer_term_calc: "$a'_{f\<bar>n\<rceil>} = (LBINT t:{f..f+n}. $v.^t)"
+  if "f \<ge> 0" "n \<ge> 0" for f n :: real
+proof -
+  have [simp]: "defer_cont_term_ann i f n"
+    by (standard; simp add: that)
+  show "set_integrable lborel {f..f+n} (\<lambda>t. $v.^t)"
+    by (rule defer_cont_term_ann.PV_set_integrable; simp add: that)
+  show "$a'_{f\<bar>n\<rceil>} = (LBINT t:{f..f+n}. $v.^t)"
+    unfolding PV_defer_cont_term_ann_def using that
+    by (rewrite defer_cont_term_ann.PV_calc; simp)
+qed
+
+proposition a'_term_calc: "$a'_n\<rceil> = (LBINT t:{0..n}. $v.^t)" if "n \<ge> 0"
+  using that a'_defer_term_calc by simp
 
 end
 

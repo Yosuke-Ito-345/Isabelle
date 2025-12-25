@@ -1,0 +1,179 @@
+commit e25939061a8e6b24fb1634ccce8d6dc1f694d56b
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Sat Dec 20 22:34:21 2025 +0900
+
+    reorganize locale defer_cont_term_ann
+
+commit 19da287ccfa67805b1e1593dd6d7d1d75d85ef29
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Sat Dec 20 18:57:22 2025 +0900
+
+    combine locale defer_cont_term_ann with val_defer_cont_term_life_ann
+
+commit 862668f62c8c0f4ee094876cd426dfba6915eea4
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Sat Dec 20 18:55:19 2025 +0900
+
+    create locale defer_cont_term_ann
+
+commit bdbb0bbfb5b987f4f447029cee96d8b0580f2034
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Sat Dec 20 18:39:50 2025 +0900
+
+    remove duplicate lemmas
+
+commit b9fe156d48f7641f52fe461a598d379e1f3aef92
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Sat Dec 20 18:36:59 2025 +0900
+
+    combine locale defer_cont_perp_ann with val_defer_cont_whole_life_ann
+
+commit 191bcef72b53669bf9f7357aa5ae308758e1273b
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Fri Dec 19 22:21:47 2025 +0900
+
+    combine locale term_annuity with val_term_life_ann
+
+commit 9e1917181126ca784c62e0ea612cc55f1f732a23
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Fri Dec 19 21:24:23 2025 +0900
+
+    update README
+
+commit 7b03ce150ca2481de981b78168d57ce2ccbfd091
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Fri Dec 19 21:14:13 2025 +0900
+
+    fix
+
+commit 45b24885945d967474fab79397c856938be750ac
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Sat Dec 13 22:04:29 2025 +0900
+
+    introduce locale term_annuity
+
+commit e36672756c658631402cc4e177082b0a5e787365
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Sat Dec 13 21:54:34 2025 +0900
+
+    redefine basic life annuites
+
+commit c9991815ad11f0bb8d7d438783e33542cd79c24a
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Sat Dec 13 21:37:26 2025 +0900
+
+    rewrite locale val_defer_cont_term_life_ann
+
+commit a2bcff9852d1dcd871860634798ecdcab15d0379
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Sat Dec 13 21:17:46 2025 +0900
+
+    rewrite locale val_defer_cont_whole_life_ann
+
+commit 075cc73202f790b3938a06c97b946c8a7869f2f3
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Sat Dec 13 21:16:58 2025 +0900
+
+    ignore hash file
+
+commit a03c2b62e3554e3069b18b01d00a381bcc18276a
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Fri Dec 12 22:49:32 2025 +0900
+
+    create locale val_term_life_ann
+
+commit 8a123bb2fbc73ed093628f222baa83db28dcaa87
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Thu Dec 11 21:08:47 2025 +0900
+
+    add .gitignore
+
+commit 87c50733db182b17e149e88a19b21dc5b17e16fe
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Thu Dec 11 21:01:51 2025 +0900
+
+    update README
+
+commit f4ff24b379854aa155ce7321533be5a2627fbf0d
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Sun Dec 7 21:22:31 2025 +0900
+
+    correct errors
+
+commit 273fe5acedd0933b87d74aca27598afdc93a5517
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Sun Dec 7 13:57:00 2025 +0900
+
+    modify README in doc
+
+commit 32dada9e3750f153d6cd6cb2d8975fa416d102e1
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Sun Dec 7 13:54:27 2025 +0900
+
+    add README in doc
+
+commit 524eeffe8f992353eab3d0023173e7caefb8cc54
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Sun Dec 7 13:52:48 2025 +0900
+
+    prepare README
+
+commit a411b58dcf7db3cc63ef1d9cf6cb9fe0e02b8508
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Sun Dec 7 13:42:10 2025 +0900
+
+    move to backup
+
+commit 2608abc9970540978316b2547fde930c30960ee8
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Sun Dec 7 10:20:36 2025 +0900
+
+    rearrange directories
+
+commit 6f6eccc973feea50f14d3978df853ad1af73ceec
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Sat Dec 6 22:26:47 2025 +0900
+
+    modify Requirements in README
+
+commit dd84d6532285b6df92249f9348dc6d6cc11b0db6
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Sat Dec 6 22:21:49 2025 +0900
+
+    add Requirements in README
+
+commit 631f6b9012101c2281d7f2c27516cd6d646bb38b
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Sat Dec 6 22:16:24 2025 +0900
+
+    add references
+
+commit 19e109d419779e88e8e8d371bc446c007dbd7a41
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Sat Dec 6 22:11:34 2025 +0900
+
+    upload Lebesgue_Stieltjes_Integral
+
+commit 99bfa210e4956ecf11199f96befe922e7477f9ff
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Sat Dec 6 22:09:48 2025 +0900
+
+    add supplementary files to Actuarial_Mathematics
+
+commit a96b0faefb0a7441ed53fd08f95a145b74e13e42
+Author: Yosuke-Ito-345 <glacier345@gmail.com>
+Date:   Sat Dec 6 22:02:53 2025 +0900
+
+    upload Actuarial_Mathematics
+
+commit ccfd86c1d3482bf04a64e0655a60b50a96c3d397
+Author: Yosuke Ito <glacier345@gmail.com>
+Date:   Sat Dec 6 21:42:48 2025 +0900
+
+    slightly modify README
+
+commit 8d456a290e9e72bd44f509a6c881ad2355809d3b
+Author: Yosuke Ito <glacier345@gmail.com>
+Date:   Sat Dec 6 21:39:11 2025 +0900
+
+    Initial commit

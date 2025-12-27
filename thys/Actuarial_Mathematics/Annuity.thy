@@ -33,8 +33,11 @@ definition "ennPV \<equiv> \<integral>\<^sup>+t. $v.^t \<partial>(IM abg)"
 lemma abg_measurable[measurable]: "abg \<in> borel_measurable borel"
   using abg_mono borel_measurable_mono by simp
 
-lemma abg_constant_on_f:"abg constant_on {..<f}"
+lemma abg_constant_on_f: "abg constant_on {..<f}"
   using abg_f_0 by (simp add: constant_on_def)
+
+lemma ennPV_f: "ennPV = (\<integral>\<^sup>+t\<in>{f..}. $v.^t \<partial>(IM abg))"
+  unfolding ennPV_def using abg_constant_on_f by (rewrite nn_integral_interval_measure_Ici; simp)
 
 lemma PV_nonneg: "PV \<ge> 0"
   unfolding PV_def by (rule Bochner_Integration.integral_nonneg)+ simp
@@ -57,6 +60,22 @@ begin
 
 lemma abg_constant_on_fn: "abg constant_on {f+n..}"
   using abg_eq_fn by (meson atLeast_iff constant_on_def)
+
+lemma ennPV_fn: "ennPV = (\<integral>\<^sup>+t\<in>{..f+n}. $v.^t \<partial>(IM abg))"
+proof -
+  have "abg constant_on {f+n<..}"
+    using abg_constant_on_fn by (meson Ioi_le_Ico constant_on_subset)
+  thus ?thesis
+  unfolding ennPV_def using abg_constant_on_fn by (rewrite nn_integral_interval_measure_Iic; simp)
+qed
+
+lemma ennPV_f_fn: "ennPV = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
+proof -
+  have "abg constant_on {f+n<..}"
+    using abg_constant_on_fn by (meson Ioi_le_Ico constant_on_subset)
+  with abg_constant_on_f show ?thesis
+  unfolding ennPV_def by (rewrite nn_integral_interval_measure_Icc; simp)
+qed
 
 end
 
@@ -172,7 +191,7 @@ proof -
 
   text \<open>Proof of "PV_calc"\<close>
   have "ennPV = (\<integral>\<^sup>+t\<in>{f..}. $v.^t \<partial>(IM abg))"
-    unfolding ennPV_def using abg_constant_on_f by (rewrite nn_integral_interval_measure_Ici; simp)
+    by (rewrite ennPV_f; simp)
   also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..}. $v.^t \<partial>lborel)"
     by (rewrite set_nn_integral_interval_measure_abg; simp)
   also have "\<dots> = ennreal (LBINT t:{f..}. $v.^t)"
@@ -303,11 +322,8 @@ proof -
     using set_integrable_powr_Icc v_pos by simp
 
   text \<open>Proof of "PV_calc"\<close>
-  have "abg constant_on {f+n<..}"
-    using abg_constant_on_fn by (meson Ioi_le_Ico constant_on_subset)
-  hence "ennPV = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
-    unfolding ennPV_def using abg_constant_on_f
-    by (rewrite nn_integral_interval_measure_Icc; simp)
+  have "ennPV = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
+    by (rewrite ennPV_f_fn; simp)
   also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t \<partial>lborel)"
     by (rewrite set_nn_integral_interval_measure_abg; simp)
   also have "\<dots> = ennreal (LBINT t:{f..f+n}. $v.^t)"

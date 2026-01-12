@@ -1668,19 +1668,6 @@ qed
 subsection \<open>Interchange of Differentiation and Lebesgue Integration\<close>
 
 definition measurable_extension :: "'a measure \<Rightarrow> 'b measure \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a \<Rightarrow> 'b" where
-  "measurable_extension M N f = 
-    (SOME g. g \<in> M \<rightarrow>\<^sub>M N \<and> (\<exists>S\<in>(null_sets M). {x \<in> space M. f x \<noteq> g x} \<subseteq> S))"
-  \<comment> \<open>The term \<open>measurable_extension\<close> is proposed by Reynald Affeldt.\<close>
-  \<comment> \<open>This function is used to make an almost-everywhere-defined function measurable.\<close>
-
-(* Comment:
-   I prefer to define measurable_extension using almost_everywhere rather than
-   using null_sets explicitly because most of theorems in the standard library do so.
-   For instance, ... *)
-(*experiment
-begin
-
-definition measurable_extension :: "'a measure \<Rightarrow> 'b measure \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a \<Rightarrow> 'b" where
   "measurable_extension M N f \<equiv>
     (SOME g. g \<in> M \<rightarrow>\<^sub>M N \<and> (AE x in M. f x = g x))"
 
@@ -1694,7 +1681,7 @@ lemma
   shows measurable_extensionI: "AE x in M. f x = measurable_extension M N f x"
     (is "AE x in M. f x = ?me x")
     and measurable_extensionI2: "AE x in M. g x = measurable_extension M N f x"
-    and measurable_extension_measurable[measurable]: "measurable_extension M N f \<in> measurable M N"
+    and measurable_extension_measurable: "measurable_extension M N f \<in> measurable M N"
 proof -
   have "?me \<in> M \<rightarrow>\<^sub>M N \<and> (AE x in M. f x = ?me x)"
     unfolding measurable_extension_def
@@ -1711,59 +1698,29 @@ lemma measurable_extensionI'[simp]:
  "f \<in>  M \<rightarrow>\<^sub>M N \<Longrightarrow> AE x in M. f x = measurable_extension M N f x"
   by(auto intro!: measurable_extensionI)
 
-end*)
-
-lemma
-  fixes f g
-  assumes "g \<in> M \<rightarrow>\<^sub>M N" "S \<in> null_sets M" "{x \<in> space M. f x \<noteq> g x} \<subseteq> S"
-  shows measurable_extensionI: "AE x in M. f x = measurable_extension M N f x" and
-    measurable_extensionI2: "AE x in M. g x = measurable_extension M N f x" and
-    measurable_extension_measurable: "measurable_extension M N f \<in> measurable M N"
-proof -
-  let ?G = "\<lambda>g. g \<in> M \<rightarrow>\<^sub>M N" and ?S = "\<lambda>g. \<exists>S\<in>null_sets M. {x \<in> space M. f x \<noteq> g x} \<subseteq> S"
-  show "AE x in M. f x = measurable_extension M N f x"
-    unfolding measurable_extension_def
-    apply (rule someI2[of "\<lambda>g. ?G g \<and> ?S g" g])
-    using assms apply blast
-    using AE_I' by auto
-  moreover have "AE x in M. g x = f x"
-    using assms by (smt (verit, best) AE_I' Collect_cong)
-  ultimately show "AE x in M. g x = measurable_extension M N f x" by force
-  show "measurable_extension M N f \<in> measurable M N"
-    unfolding measurable_extension_def
-    by (rule conjE[of "?G g" "?S g"]) (use assms someI_ex[of "\<lambda>g. ?G g \<and> ?S g"] in auto)
-qed
-
 corollary measurable_measurable_extension_AE:
   fixes f
   assumes "f \<in> M \<rightarrow>\<^sub>M N"
   shows "AE x in M. f x = measurable_extension M N f x"
-  by (rule measurable_extensionI[where g=f and S="{}"]; simp add: assms)
+  by (rule measurable_extensionI[where g=f]; simp add: assms)
 
-(* Comment:
- It would be better to define borel_measurable extension by abbreviation rather than definition.
- This idea comes from the definition of borel_measurable. *)
-definition borel_measurable_extension ::
+abbreviation borel_measurable_extension ::
   "'a measure \<Rightarrow> ('a \<Rightarrow> 'b::topological_space) \<Rightarrow> 'a \<Rightarrow> 'b" where
-  "borel_measurable_extension M f = measurable_extension M borel f"
+  "borel_measurable_extension M f \<equiv> measurable_extension M borel f"
 
-lemma
+(*lemma
   fixes f g
   assumes "g \<in> borel_measurable M" "S \<in> null_sets M" "{x \<in> space M. f x \<noteq> g x} \<subseteq> S"
   shows borel_measurable_extensionI: "AE x in M. f x = borel_measurable_extension M f x" and
     borel_measurable_extensionI2: "AE x in M. g x = borel_measurable_extension M f x" and
     borel_measurable_extension_measurable: "borel_measurable_extension M f \<in> borel_measurable M"
-  unfolding borel_measurable_extension_def using assms
-  apply -
-  using measurable_extensionI apply blast
-  using measurable_extensionI2 apply blast
-  using measurable_extension_measurable by blast
+*)
 
-corollary borel_measurable_measurable_extension_AE:
+(*corollary borel_measurable_measurable_extension_AE:
   fixes f
   assumes "f \<in> borel_measurable M"
   shows "AE x in M. f x = borel_measurable_extension M f x"
-  using assms measurable_measurable_extension_AE unfolding borel_measurable_extension_def by auto
+  using assms measurable_measurable_extension_AE by auto*)
 
 definition set_borel_measurable_extension ::
   "'a measure \<Rightarrow> 'a set \<Rightarrow> ('a \<Rightarrow> 'b::topological_space) \<Rightarrow> 'a \<Rightarrow> 'b"
@@ -1771,37 +1728,23 @@ definition set_borel_measurable_extension ::
 
 lemma
   fixes f g :: "'a \<Rightarrow> 'b::real_normed_vector" and A
-  assumes "A \<in> sets M" "set_borel_measurable M A g" "S \<in> null_sets M" "{x \<in> A. f x \<noteq> g x} \<subseteq> S"
+  assumes [measurable]:"A \<in> sets M" "set_borel_measurable M A g" "AE x\<in>A in M. f x = g x"
   shows set_borel_measurable_extensionI:
     "AE x\<in>A in M. f x = set_borel_measurable_extension M A f x" and
     set_borel_measurable_extensionI2:
     "AE x\<in>A in M. g x = set_borel_measurable_extension M A f x" and
     set_borel_measurable_extension_measurable:
     "set_borel_measurable M A (set_borel_measurable_extension M A f)"
-proof -
-  have "g \<in> borel_measurable (restrict_space M A)"
-    using assms by (rewrite set_borel_measurable_restrict_space_iff; simp)
-  moreover have "S \<inter> A \<in> null_sets (restrict_space M A)"
-    using assms null_sets_restrict_space by (metis Int_lower2 null_set_Int2)
-  moreover have "{x \<in> space (restrict_space M A). f x \<noteq> g x} \<subseteq> S \<inter> A"
-    using assms by (rewrite space_restrict_space2; simp)
-  ultimately show "AE x\<in>A in M. f x = set_borel_measurable_extension M A f x" and
-    "AE x\<in>A in M. g x = set_borel_measurable_extension M A f x" and
-    "set_borel_measurable M A (set_borel_measurable_extension M A f)"
-    unfolding set_borel_measurable_extension_def using assms
-      by(auto simp: AE_restrict_space_iff[symmetric] set_borel_measurable_restrict_space_iff[symmetric]
-        intro!: borel_measurable_extensionI borel_measurable_extensionI2[of g _ "S \<inter> A"]
-         borel_measurable_extension_measurable)
-qed
+  using assms measurable_extensionI2[where g=g] measurable_extensionI[where g=g]
+    measurable_extension_measurable
+  by(auto simp: set_borel_measurable_extension_def AE_restrict_space_iff[symmetric]
+      set_borel_measurable_restrict_space_iff[symmetric])
 
 corollary set_borel_measurable_measurable_extension_AE:
   fixes f::"'a \<Rightarrow> 'b::real_normed_vector" and A
   assumes "set_borel_measurable M A f" "A \<in> sets M"
   shows "AE x\<in>A in M. f x = set_borel_measurable_extension M A f x"
-  using set_borel_measurable_restrict_space_iff
-    borel_measurable_measurable_extension_AE AE_restrict_space_iff
-  unfolding set_borel_measurable_extension_def
-  by (metis (no_types, lifting) ext assms sets.Int_space_eq2)
+  by (simp add: assms set_borel_measurable_extensionI2)
 
 proposition interchange_deriv_LINT_general:
   fixes a b :: real and f :: "real \<Rightarrow> 'a \<Rightarrow> real" and g :: "'a \<Rightarrow> real"
@@ -1954,10 +1897,11 @@ proof -
               hence "deriv (\<lambda>s. f s x) r = Df r x" unfolding Df_def using r_ab by simp }
             thus ?thesis by blast
           qed
+          hence *:"AE x in M. deriv (\<lambda>s. f s x) r = Df r x"
+            using N_null eventually_ae_filter by blast
           thus "AE x in M. Df r x = borel_measurable_extension M (\<lambda>y. deriv (\<lambda>s. f s y) r) x" and
             "borel_measurable_extension M (\<lambda>y. deriv (\<lambda>s. f s y) r) \<in> borel_measurable M"
-            using N_null
-            by(auto intro!: borel_measurable_extensionI2[where S=N] borel_measurable_extension_measurable[where g="Df r"])
+           by(auto intro!: measurable_extensionI2[OF _ *] measurable_extension_measurable[OF _ *])
         qed
         thus ?thesis using Df_msr by (intro integral_cong_AE; simp)
       qed
@@ -1984,15 +1928,12 @@ proof -
   fix r assume r_ab: "r\<in>{a<..<b}"
   hence Df_msr[measurable]: "(\<lambda>x. deriv (\<lambda>s. f s x) r) \<in> borel_measurable M"
     using assms by simp
-  (* It might be better to add the following as a lemma. *)
-  have [measurable]: "\<And>h N L. h \<in> N \<rightarrow>\<^sub>M L \<Longrightarrow> measurable_extension N L h \<in> N \<rightarrow>\<^sub>M L"
-    by(rule measurable_extension_measurable[where S="{}"]) auto
   have "((\<lambda>s. \<integral>x. f s x \<partial>M) has_real_derivative
     (\<integral>x. borel_measurable_extension M (\<lambda>y. deriv (\<lambda>s. f s y) r) x \<partial>M)) (at r)"
     using assms r_ab by (intro interchange_deriv_LINT_general; simp)
   moreover have "(\<integral>x. deriv (\<lambda>s. f s x) r \<partial>M) =
      (\<integral>x. borel_measurable_extension M (\<lambda>y. deriv (\<lambda>s. f s y) r) x \<partial>M)"
-    by(auto intro!: integral_cong_AE measurable_extensionI[where S="{}"] simp: borel_measurable_extension_def)
+    by(auto intro!: integral_cong_AE)
   ultimately show "((\<lambda>r. \<integral>x. f r x \<partial>M) has_real_derivative \<integral>x. deriv (\<lambda>r. f r x) r \<partial>M) (at r)"
     by simp
 qed
@@ -2038,14 +1979,14 @@ proof -
   hence [simp]: "set_borel_measurable M A (\<lambda>x. deriv (\<lambda>s. f s x) r)"
     using assms by simp
   have [measurable]: "\<And>h N L. h \<in> N \<rightarrow>\<^sub>M L \<Longrightarrow> measurable_extension N L h \<in> N \<rightarrow>\<^sub>M L"
-    by(rule measurable_extension_measurable[where S="{}"]) auto
+    by(rule measurable_extension_measurable) auto
   have "((\<lambda>s. \<integral>x\<in>A. f s x \<partial>M) has_real_derivative
     (\<integral>x\<in>A. set_borel_measurable_extension M A (\<lambda>y. deriv (\<lambda>s. f s y) r) x \<partial>M)) (at r)"
     using assms r_ab by (intro interchange_deriv_LINT_set_general; simp)
   moreover have "(\<integral>x\<in>A. deriv (\<lambda>s. f s x) r \<partial>M) = 
      (\<integral>x\<in>A. set_borel_measurable_extension M A (\<lambda>y. deriv (\<lambda>s. f s y) r) x \<partial>M)"
-    by(auto intro!: set_lebesgue_integral_cong_AE2 set_borel_measurable_extension_measurable[where S="{}"]
-        set_borel_measurable_measurable_extension_AE)
+    by(auto intro!: set_lebesgue_integral_cong_AE2 set_borel_measurable_measurable_extension_AE
+        set_borel_measurable_extension_measurable[where g="\<lambda>y. deriv (\<lambda>s. f s y) r"])
   ultimately show
     "((\<lambda>r. \<integral>x\<in>A. f r x \<partial>M) has_real_derivative (\<integral>x\<in>A. deriv (\<lambda>r. f r x) r \<partial>M)) (at r)"
     by simp

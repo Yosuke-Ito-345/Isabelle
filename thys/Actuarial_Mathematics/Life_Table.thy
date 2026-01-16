@@ -568,9 +568,9 @@ lemma temp_e_LBINT_l: "$e`\<circ>_{x:n} = (LBINT t:{0..n}. $l_(x+t)) / $l_x" if 
 lemma integral_p_l: "integral A (\<lambda>t. $p_{t&x}) = (integral A (\<lambda>t. $l_(x+t))) / $l_x"
   if "A \<subseteq> {0..}" "A \<in> sets lborel" for A :: "real set"
   \<comment> \<open>Note that \<open>0 = 0\<close> holds when the integral diverges.\<close>
-  using that apply (rewrite set_borel_integral_eq_integral_nonneg[THEN sym]; simp?)
+  using that apply (rewrite set_borel_integral_eq_integral_nonneg[THEN sym], simp_all)
   apply (simp add: survive_def)
-  apply (rewrite set_borel_integral_eq_integral_nonneg[THEN sym]; simp?)
+  apply (rewrite set_borel_integral_eq_integral_nonneg[THEN sym], simp_all)
   using LBINT_p_l survive_def by simp
 
 corollary e_integral_l: "$e`\<circ>_x = integral {0..} (\<lambda>t. $l_(x+t)) / $l_x"

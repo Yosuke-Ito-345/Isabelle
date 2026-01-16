@@ -70,7 +70,7 @@ proof (rule antisym)
 qed
 
 definition death_pt :: ereal (\<open>$\<psi>\<close>)
-  where "$\<psi> \<equiv> Inf (ereal ` {x \<in> \<real>. ccdf (distr \<MM> borel X) x = 0})"
+  where "$\<psi> \<equiv> Inf (ereal ` {x::real. ccdf (distr \<MM> borel X) x = 0})"
     \<comment> \<open>This is my original notation,
         which is used to develop life insurance mathematics rigorously.\<close>
 
@@ -78,7 +78,7 @@ lemma psi_nonneg: "$\<psi> \<ge> 0"
   unfolding death_pt_def
 proof (rule Inf_greatest)
   fix x'::ereal
-  assume "x' \<in> ereal ` {x \<in> \<real>. ccdf (distr \<MM> borel X) x = 0}"
+  assume "x' \<in> ereal ` {x::real. ccdf (distr \<MM> borel X) x = 0}"
   then obtain x::real where "x' = ereal x" and "ccdf (distr \<MM> borel X) x = 0" by blast
   hence "ccdf (distr \<MM> borel X) 0 > ccdf (distr \<MM> borel X) x" using ccdfX_0_1 X_pos_AE by simp
   hence "x \<ge> 0"
@@ -89,11 +89,11 @@ qed
 
 lemma ccdfX_beyond_0: "ccdf (distr \<MM> borel X) x = 0" if "x > $\<psi>" for x::real
 proof -
-  have "ereal ` {y \<in> \<real>. ccdf (distr \<MM> borel X) y = 0} \<noteq> {}" using death_pt_def that by force
-  hence "\<exists>y'\<in>(ereal ` {y \<in> \<real>. ccdf (distr \<MM> borel X) y = 0}). y' < ereal x"
+  have "ereal ` {y::real. ccdf (distr \<MM> borel X) y = 0} \<noteq> {}" using death_pt_def that by force
+  hence "\<exists>y'\<in>(ereal ` {y::real. ccdf (distr \<MM> borel X) y = 0}). y' < ereal x"
     using that unfolding death_pt_def by (rule cInf_lessD)
   then obtain "y'"
-    where "y' \<in> (ereal ` {y \<in> \<real>. ccdf (distr \<MM> borel X) y = 0})" and "y' < ereal x" by blast
+    where "y' \<in> (ereal ` {y::real. ccdf (distr \<MM> borel X) y = 0})" and "y' < ereal x" by blast
   then obtain y::real
     where "y' = ereal y" and "ccdf (distr \<MM> borel X) y = 0" and "ereal y < ereal x" by blast
   hence "ccdf (distr \<MM> borel X) y = 0" and "y < x" by simp_all
@@ -126,7 +126,7 @@ qed
 lemma ccdfX_0_equiv: "ccdf (distr \<MM> borel X) x = 0 \<longleftrightarrow> x \<ge> $\<psi>" for x::real
 proof
   assume "ccdf (distr \<MM> borel X) x = 0"
-  thus "ereal x \<ge> $\<psi>" unfolding death_pt_def by (intro INF_lower; simp add: Reals_def)
+  thus "ereal x \<ge> $\<psi>" unfolding death_pt_def by (simp add: INF_lower)
 next
   assume "$\<psi> \<le> ereal x"
   hence "$\<psi> = ereal x \<or> $\<psi> < ereal x" unfolding less_eq_ereal_def by auto

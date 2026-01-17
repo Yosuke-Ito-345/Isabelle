@@ -111,10 +111,14 @@ corollary
 lemma abg_mono[simp]: "mono abg"
   unfolding abg_def by (simp add: monoI)
 
+(* TODO: delete *)
+lemma annuity_abg: "annuity i f abg"
+  by (standard; simp)
+
 end
 
 sublocale defer_cont_perp_ann \<subseteq> annuity i f abg
-  by (standard; simp)
+  by (rule annuity_abg)
 
 context defer_cont_perp_ann
 begin
@@ -245,10 +249,14 @@ corollary
 lemma abg_mono[simp]: "mono abg"
   unfolding abg_def by (simp add: monoI)
 
+(* TODO: delete *)
+lemma term_annuity_abg: "term_annuity i f abg n"
+  by (standard; simp add: abg_fn)
+
 end
 
 sublocale defer_cont_term_ann \<subseteq> term_annuity i f abg n
-  by (standard; simp add: abg_fn)
+  by (rule term_annuity_abg)
 
 context defer_cont_term_ann
 begin

@@ -662,6 +662,53 @@ lemma a'_whole_term_life_beyond: "$a'_{x} = $a'_{x;n\<rceil>}"
   if "x+n \<ge> $\<psi>" "n \<ge> 0" "i > 0" "x < $\<psi>" for f n x :: real
   using a'_defer_whole_term_life_beyond that by simp
 
+lemma a'_whole_life_term_Tx: "$a'_{x} = \<integral>\<xi>. $a'_{x ; T x \<xi> \<rceil>} \<partial>(\<MM> \<downharpoonright> alive x)"
+  if "i > 0" "x < $\<psi>" for x::real
+proof -
+
+  interpret cpa: defer_cont_perp_ann i 0
+    apply (intro defer_cont_perp_ann.intro)
+    apply (rule interest_axioms)
+    by (simp add: defer_cont_perp_ann_axioms.intro)
+
+  interpret vlap: val_life_ann i l 0 cpa.abg
+    apply (rule val_life_ann.intro)
+    apply (rule actuarial_model_axioms)
+    by (rule cpa.annuity_abg)
+
+  have "\<And>\<xi>. \<xi> \<in> space (\<MM> \<downharpoonright> alive x) \<Longrightarrow>
+       (\<integral>\<^sup>+t\<in>{0..< T x \<xi>}. $v.^t \<partial>(IM cpa.abg)) =
+       val.ennAPV i l (val_life_ann.ab (defer_cont_term_ann.abg 0 (T x \<xi>))) vlap.tp (T x \<xi>)"
+  proof -
+    fix \<xi> assume xi: "\<xi> \<in> space (\<MM> \<downharpoonright> alive x)"
+    interpret cta: defer_cont_term_ann i 0 "T x \<xi>"
+      apply (intro defer_cont_term_ann.intro)
+       apply (rule interest_axioms)
+      apply (intro defer_cont_term_ann_axioms.intro, simp)
+      using that alivex_Tx_pos less_eq_real_def xi by blast
+    interpret vlat: val_life_ann i l 0 cta.abg
+      apply (rule val_life_ann.intro)
+       apply (rule actuarial_model_axioms)
+      using cta.annuity_axioms by force
+    show "(\<integral>\<^sup>+t\<in>{0..< T x \<xi>}. $v.^t \<partial>(IM cpa.abg)) = vlat.ennAPV (T x \<xi>)"
+      sorry
+  qed
+
+  have "vlap.ennAPV x =
+    \<integral>\<^sup>+\<xi>. val.ennAPV i l (val_life_ann.ab (defer_cont_term_ann.abg 0 (T x \<xi>))) val_life_ann.tp (T x \<xi>) \<partial>(\<MM> \<downharpoonright> alive x)"
+    apply (rewrite vlap.ennAPV_PV_abg, simp add: that)
+    apply (rule nn_integral_cong)
+
+(* lemma ennAPV_PV_abg:
+  assumes "x < $\<psi>"
+  shows "ennAPV x = \<integral>\<^sup>+\<xi>. (\<integral>\<^sup>+t\<in>{f..<T x \<xi>}. $v.^t \<partial>(IM abg)) \<partial>(\<MM> \<downharpoonright> alive x)" *)
+
+  show ?thesis
+    sorry
+qed
+
+
+
 end
 
 

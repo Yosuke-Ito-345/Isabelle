@@ -296,10 +296,10 @@ lemma PV_abg:
 proof -
   have "ab \<theta> constant_on {\<theta><..}"
     using ab_constant_on_th by (meson Ioi_le_Ico constant_on_subset)
-  hence "(\<integral>\<^sup>+t. ennreal ($v.^(tp \<theta> t)) \<partial>(IM (ab \<theta>))) = (\<integral>\<^sup>+t\<in>{f..<\<theta>}. ennreal ($v.^t) \<partial>(IM (ab \<theta>)))"
+  hence "(\<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) = (\<integral>\<^sup>+t\<in>{f..<\<theta>}. $v.^t \<partial>(IM (ab \<theta>)))"
     unfolding tp_def using isCont_ab_th ab_constant_on_f
     by (rewrite nn_integral_interval_measure_Ico; simp)
-  also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..<\<theta>}. ennreal ($v.^t) \<partial>(IM abg))"
+  also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..<\<theta>}. $v.^t \<partial>(IM abg))"
   proof (cases \<open>f < \<theta>\<close>)
     case True
     have "Lim (at_left f) (ab \<theta>) = Lim (at_left f) abg"
@@ -314,7 +314,60 @@ proof -
   finally show ?thesis .
 qed
 
-lemma PV_measurable[measurable]: "(\<lambda>\<theta>. \<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) \<in> borel_measurable borel"
+lemma PV_abg_fin:
+  fixes \<theta>::real
+  shows "(\<integral>\<^sup>+t\<in>{f..<\<theta>}. $v.^t \<partial>(IM abg)) < \<infinity>"
+proof -
+  fix \<theta>
+  have "{f..<\<theta>} \<subseteq> {f-1<..\<theta>}" by force
+  hence "emeasure (IM abg) {f..<\<theta>} \<le> emeasure (IM abg) {f-1<..\<theta>}"
+    by (rule emeasure_mono; simp)
+  also have "\<dots> < \<infinity>"
+    by (rewrite emeasure_interval_measure_Ioc_eq; simp add: monoD)
+  finally have emfin: "emeasure (IM abg) {f..<\<theta>} < \<infinity>" .
+  define M where "M \<equiv> max ($v.^f) ($v.^\<theta>)"
+  have "\<And>t. t \<in> {f..<\<theta>} \<Longrightarrow> $v.^t \<le> M"
+  proof -
+    fix t assume tfth : "t \<in> {f..<\<theta>}"
+    show "$v.^t \<le> M"
+    proof (cases \<open>$v < 1\<close>)
+      case True
+      with tfth show ?thesis
+        unfolding M_def by (simp add: powr_mono_both' v_pos)
+    next
+      case False
+      with tfth show ?thesis
+        unfolding M_def
+        by (metis atLeastLessThan_iff less_eq_real_def
+            linorder_le_less_linear powr_mono le_max_iff_disj)
+    qed
+  qed
+  hence "(\<integral>\<^sup>+t\<in>{f..<\<theta>}. $v.^t \<partial>(IM abg)) \<le> (\<integral>\<^sup>+t\<in>{f..<\<theta>}. M \<partial>(IM abg))"
+    by (intro nn_set_integral_mono; simp add: ennreal_leI)
+  also have "\<dots> = M * emeasure (IM abg) {f..<\<theta>}"
+    by (rewrite nn_integral_cmult_indicator; simp)
+  also have "\<dots> < \<infinity>"
+    using emfin by (simp add: ennreal_mult_less_top)
+  finally show "(\<integral>\<^sup>+t\<in>{f..<\<theta>}. $v.^t \<partial>(IM abg)) < \<infinity>" .
+qed
+
+lemma PV_abg_set_integrable:
+  fixes \<theta>::real
+  shows "set_integrable (IM abg) {f..<\<theta>} (\<lambda>t. $v.^t)"
+proof -
+  have "set_borel_measurable (IM abg) {f..<\<theta>} (\<lambda>t. $v.^t)"
+    unfolding set_borel_measurable_def by measurable
+  thus ?thesis
+    using PV_abg_fin by (rewrite set_integrable_iff_bounded) auto
+qed
+
+corollary PV_abg_set_integral:
+  fixes \<theta>::real
+  shows "(\<integral>\<^sup>+t\<in>{f..<\<theta>}. $v.^t \<partial>(IM abg)) = ennreal (\<integral>t\<in>{f..<\<theta>}. $v.^t \<partial>(IM abg))"
+  using PV_abg_set_integrable by (rewrite set_nn_integral_eq_set_integral; simp)
+
+lemma PV_abg_measurable[measurable]:
+  "(\<lambda>\<theta>. (\<integral>\<^sup>+t\<in>{f..<\<theta>}. $v.^t \<partial>(IM abg))) \<in> borel_measurable borel"
 proof -
   have "Measurable.pred (borel \<Otimes>\<^sub>M borel) (\<lambda>(\<theta>,t). t \<in> {f..<\<theta>})" by simp
   hence "(\<lambda>(\<theta>,t). $v.^t * indicator {f..<\<theta>} t) \<in> borel_measurable (lborel \<Otimes>\<^sub>M IM abg)"
@@ -325,11 +378,26 @@ proof -
     using sigma_finite_measure.borel_measurable_nn_integral_fst
       [of _ "\<lambda>(\<theta>,t). $v.^t * indicator {f..<\<theta>} t"]
     by simp
-  moreover have "(\<lambda>\<theta>. \<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) =
-    (\<lambda>\<theta>. (\<integral>\<^sup>+t. $v.^t * indicator {f..<\<theta>} t \<partial>(IM abg)))"
-    using PV_abg by (simp add: nn_integral_set_ennreal)
-  ultimately show ?thesis by simp
+  thus ?thesis by (simp add: nn_integral_set_ennreal)
 qed
+
+corollary PV_fin:
+  fixes \<theta>::real
+  shows "(\<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) < \<infinity>"
+  using PV_abg_fin PV_abg by simp
+
+corollary PV_integrable:
+  fixes \<theta>::real
+  shows "integrable (IM (ab \<theta>)) (\<lambda>t. $v.^(tp \<theta> t))"
+  using PV_fin by (rewrite integrable_iff_bounded; simp)
+
+corollary PV_LINT:
+  fixes \<theta>::real
+  shows "(\<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) = ennreal (\<integral>t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>)))"
+  using PV_integrable by (rewrite nn_integral_eq_integral; simp)
+
+corollary PV_measurable[measurable]: "(\<lambda>\<theta>. \<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) \<in> borel_measurable borel"
+  using PV_abg PV_abg_measurable by simp
 
 end
 
@@ -341,8 +409,35 @@ begin
 
 lemma ennAPV_PV_abg:
   assumes "x < $\<psi>"
-  shows "ennAPV x = \<integral>\<^sup>+\<xi>. (\<integral>\<^sup>+t\<in>{f..<T x \<xi>}. $v.^t \<partial>(IM abg)) \<partial>(\<MM> \<downharpoonright> alive x)"
+  shows "ennAPV x = \<integral>\<^sup>+\<xi>. (\<integral>\<^sup>+t\<in>{f..< T x \<xi>}. $v.^t \<partial>(IM abg)) \<partial>(\<MM> \<downharpoonright> alive x)"
   unfolding ennAPV_def by (auto intro!: nn_integral_cong simp add: PV_abg)
+
+lemma APV_PV_abg:
+  assumes "x < $\<psi>" "ennAPV x < \<infinity>"
+  shows "APV x = \<integral>\<xi>. (\<integral>t\<in>{f..< T x \<xi>}. $v.^t \<partial>(IM abg)) \<partial>(\<MM> \<downharpoonright> alive x)"
+proof -
+
+  have "(\<lambda>\<theta>. (\<integral>t\<in>{f..<\<theta>}. $v.^t \<partial>(IM abg))) \<in> borel_measurable borel"
+    using PV_abg_set_integral PV_abg_measurable by simp
+  hence [measurable]: "(\<lambda>\<xi>. set_lebesgue_integral (IM abg) {f..<T x \<xi>} ((.^) ($v)))
+    \<in> borel_measurable (\<MM> \<downharpoonright> alive x)"
+    using PV_measurable' by simp
+
+  have "ennreal (APV x) = ennAPV x"
+    using PV_fin assms by (rewrite ennAPV_APV; simp)
+  also have ennAPV': "\<dots> = (\<integral>\<^sup>+\<xi>. ennreal (\<integral>t\<in>{f..< T x \<xi>}. $v.^t \<partial>(IM abg)) \<partial>(\<MM> \<downharpoonright> alive x))"
+    apply (rewrite ennAPV_PV_abg, simp add: assms)
+    apply (rule nn_integral_cong)
+    by (rule set_nn_integral_eq_set_integral; simp add: PV_abg_set_integrable)
+  also have "\<dots> = ennreal (\<integral>\<xi>. (\<integral>t\<in>{f..< T x \<xi>}. $v.^t \<partial>(IM abg)) \<partial>(\<MM> \<downharpoonright> alive x))"
+    apply (rule nn_integral_eq_integral)
+     apply (rule integrableI_nonneg)
+    using ennAPV' assms by simp_all
+  finally have "ennreal (APV x) = ennreal (\<integral>\<xi>. (\<integral>t\<in>{f..< T x \<xi>}. $v.^t \<partial>(IM abg)) \<partial>(\<MM> \<downharpoonright> alive x))" .
+  then show ?thesis
+    using APV_nonneg assms by (rewrite ennreal_inj[THEN sym]; simp)
+
+qed
 
 lemma ennAPV_nn_integral_interval_measure_abg:
   assumes "x < $\<psi>"
@@ -449,6 +544,30 @@ sublocale val_defer_cont_whole_life_ann \<subseteq> val_life_ann i l f abg
 context val_defer_cont_whole_life_ann
 begin
 
+lemma ennAPV_calc: 
+  fixes x::real
+  assumes "x < $\<psi>"
+  shows "ennAPV x = (\<integral>\<^sup>+t\<in>{f..}. $v.^t * $p_{t&x} \<partial>lborel)"
+proof -
+  have "ennAPV x = (\<integral>\<^sup>+t\<in>{f..}. $v.^t * $p_{t&x} \<partial>(IM abg))"
+    by (rule ennAPV_nn_integral_interval_measure_abg, simp add: assms)
+  also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..}. $v.^t * $p_{t&x} \<partial>lborel)"
+    by (rule set_nn_integral_interval_measure_abg; simp add: assms)
+  finally show ?thesis .
+qed
+
+lemma ennAPV_fin:
+  fixes x::real
+  assumes "i > 0" "x < $\<psi>"
+  shows "ennAPV x < \<infinity>"
+proof -
+  have "ennAPV x \<le> (\<integral>\<^sup>+t\<in>{f..}. $v.^t \<partial>lborel)"
+    apply (rewrite ennAPV_calc, simp add: assms)
+    by (rule nn_set_integral_mono; simp add: assms mult_left_le)
+  also have "\<dots> < \<infinity>" using assms v_pos v_lt_1_iff_i_pos by (rewrite nn_integral_powr_Ici; simp)
+  finally show "ennAPV x < \<infinity>" .
+qed
+
 lemma
   fixes x::real
   assumes "i > 0" "x < $\<psi>"
@@ -457,40 +576,21 @@ lemma
 proof -
 
   text \<open>Proof of "APV_set_integrable"\<close>
-  have "(\<integral>\<^sup>+t\<in>{f..}. \<bar>$v.^t * $p_{t&x}\<bar> \<partial>lborel) \<le> (\<integral>\<^sup>+t\<in>{f..}. $v.^t \<partial>lborel)"
-    by (rule nn_set_integral_mono; simp add: assms mult_left_le)
-  also have "\<dots> < \<infinity>" using assms v_pos v_lt_1_iff_i_pos by (rewrite nn_integral_powr_Ici; simp)
-  finally have "(\<integral>\<^sup>+t\<in>{f..}. \<bar>$v.^t * $p_{t&x}\<bar> \<partial>lborel) < \<infinity>" .
-  moreover have "set_borel_measurable lborel {f..} (\<lambda>t::real. $v .^ t * $p_{t&x})"
+  have "(\<integral>\<^sup>+t\<in>{f..}. \<bar>$v.^t * $p_{t&x}\<bar> \<partial>lborel) < \<infinity>"
+    using ennAPV_calc ennAPV_fin assms by simp
+  moreover have "set_borel_measurable lborel {f..} (\<lambda>t. $v.^t * $p_{t&x})"
     unfolding set_borel_measurable_def using assms by simp
-  ultimately show  APV_set_integrable: "set_integrable lborel {f..} (\<lambda>t. $v.^t * $p_{t&x})"
+  ultimately show APV_set_integrable: "set_integrable lborel {f..} (\<lambda>t. $v.^t * $p_{t&x})"
     by (rewrite set_integrable_iff_bounded; simp)
 
   text \<open>Proof of "APV_calc"\<close>
-  have "ennAPV x = (\<integral>\<^sup>+t\<in>{f..}. $v.^t * $p_{t&x} \<partial>(IM abg))"
-    by (rule ennAPV_nn_integral_interval_measure_abg, simp add: assms)
-  also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..}. $v.^t * $p_{t&x} \<partial>lborel)"
-    by (rule set_nn_integral_interval_measure_abg; simp add: assms)
-  also have "\<dots> = (LBINT t:{f..}. $v.^t * $p_{t&x})"
-    by (rewrite set_nn_integral_eq_set_integral; simp add: APV_set_integrable assms)
-  finally have enn: "ennAPV x = (LBINT t:{f..}. $v.^t * $p_{t&x})" .
-  hence "ennAPV x < \<infinity>" by simp
-  moreover have "\<And>\<theta>. \<theta> > 0 \<Longrightarrow> (\<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) < \<infinity>"
-  proof -
-    fix \<theta>::real assume "\<theta> > 0" 
-    have "(\<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) = (\<integral>\<^sup>+t\<in>{f..<\<theta>}. $v.^t \<partial>(IM abg))"
-      by (rewrite PV_abg; simp)
-    also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..<\<theta>}. $v.^t \<partial>lborel)"
-      by (rule set_nn_integral_interval_measure_abg) auto
-    also have "\<dots> \<le> (\<integral>\<^sup>+t\<in>{f..\<theta>}. $v.^t \<partial>lborel)"
-      by (rule nn_set_integral_set_mono, simp add: atLeastLessThan_subseteq_atLeastAtMost_iff)
-    also have "\<dots> < \<infinity>"
-      using v_lt_1_iff_i_pos v_pos assms by (rewrite nn_integral_powr_Icc_gen; simp)
-    finally show "(\<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) < \<infinity>" .
-  qed
-  ultimately have "APV x = ennAPV x" using ennAPV_APV by simp
-  with enn show "APV x = (LBINT t:{f..}. $v.^t * $p_{t&x})"
+  have "ennreal (APV x) = ennAPV x" using ennAPV_fin PV_fin ennAPV_APV assms by simp
+  also have "\<dots> = ennreal (LBINT t:{f..}. $v.^t * $p_{t&x})"
+    apply (rewrite ennAPV_calc, simp add: assms)
+    using APV_set_integrable assms by (rewrite set_nn_integral_eq_set_integral; simp)
+  finally show "APV x = (LBINT t:{f..}. $v.^t * $p_{t&x})"
     using ennreal_inj assms APV_nonneg by simp
+
 qed
 
 end
@@ -504,6 +604,8 @@ sublocale val_defer_cont_term_life_ann \<subseteq> val_term_life_ann i l f abg n
 
 context val_defer_cont_term_life_ann
 begin
+
+(* TODO : imitate subsection \<open>Deferred Continuous Whole Life Annuity\<close> *)
 
 lemma
   fixes x::real
@@ -662,29 +764,59 @@ lemma a'_whole_term_life_beyond: "$a'_{x} = $a'_{x;n\<rceil>}"
   if "x+n \<ge> $\<psi>" "n \<ge> 0" "i > 0" "x < $\<psi>" for f n x :: real
   using a'_defer_whole_term_life_beyond that by simp
 
+lemma a'_whole_life_term_Tx: "$a'_{x} = \<integral>\<xi>. $a'_(T x \<xi>)\<rceil> \<partial>(\<MM> \<downharpoonright> alive x)"
+  if "i > 0" "x < $\<psi>" for x::real
+proof -
+
+  interpret cpa: defer_cont_perp_ann i 0
+    apply (intro defer_cont_perp_ann.intro)
+    apply (rule interest_axioms)
+    by (simp add: defer_cont_perp_ann_axioms.intro)
+  interpret vcwla: val_defer_cont_whole_life_ann i l 0
+    apply (rule val_defer_cont_whole_life_ann.intro)
+     apply (rule actuarial_model_axioms)
+    by (metis cpa.defer_cont_perp_ann_axioms)
+
+  { fix \<xi> assume xi_in: "\<xi> \<in> space (\<MM> \<downharpoonright> alive x)"
+
+    have "sym_diff {0..< T x \<xi>} {0.. T x \<xi>} = {T x \<xi>}"
+      using less_eq_real_def xi_in by force
+    hence sdTx: "sym_diff {0..< T x \<xi>} {0.. T x \<xi>} \<in> null_sets (IM cpa.abg)"
+      by (simp add: interval_measure_singleton_continuous null_setsI)
+
+    interpret dcta: defer_cont_term_ann i 0 "T x \<xi>"
+      apply (intro defer_cont_term_ann.intro)
+       apply (rule interest_axioms)
+      apply (intro defer_cont_term_ann_axioms.intro, simp)
+      using xi_in that alivex_Tx_pos less_eq_real_def by force
+
+    have [simp]: "cpa.abg - dcta.abg constant_on {0<.. T x \<xi>}"
+      unfolding cpa.abg_def dcta.abg_def constant_on_def
+      by (rule exI[of _ 0]) simp
+
+    have "ennreal (\<integral>t\<in>{0..< T x \<xi>}. $v.^t \<partial>(IM cpa.abg)) = (\<integral>\<^sup>+t\<in>{0..< T x \<xi>}. $v.^t \<partial>(IM cpa.abg))"
+      using vcwla.PV_abg_set_integral by simp
+    also have "\<dots> = (\<integral>\<^sup>+t\<in>{0.. T x \<xi>}. $v.^t \<partial>(IM cpa.abg))"
+      by (rewrite nn_integral_null_delta[OF _ _ sdTx]; simp)
+    also have "\<dots> = dcta.ennPV"
+      apply (rewrite dcta.ennPV_f_fn)
+      by (rewrite Icc_Cont_nn_integral_interval_measure_cong; simp)
+    also have "\<dots> = ennreal dcta.PV"
+      by (rule dcta.ennPV_PV[OF dcta.ennPV_fin])
+    finally have "ennreal (\<integral>t\<in>{0..< T x \<xi>}. $v.^t \<partial>(IM cpa.abg)) = ennreal dcta.PV" .
+    hence "(\<integral>t\<in>{0..< T x \<xi>}. $v.^t \<partial>(IM cpa.abg)) = dcta.PV"
+      by (rewrite ennreal_inj[THEN sym]; simp add: dcta.PV_nonneg) }
+
+  hence "(\<integral>\<xi>. (\<integral>t\<in>{0..< T x \<xi>}. $v.^t \<partial>(IM cpa.abg)) \<partial>(\<MM> \<downharpoonright> alive x)) =
+    (\<integral>\<xi>. annuity.PV i (defer_cont_term_ann.abg 0 (T x \<xi>)) \<partial>(\<MM> \<downharpoonright> alive x))"
+    by (intro Bochner_Integration.integral_cong; simp)
+
+  thus ?thesis
+    unfolding APV_defer_cont_whole_life_ann_def PV_defer_cont_term_ann_def using vcwla.ennAPV_fin
+    by (rewrite vcwla.APV_PV_abg; simp add: that)
+
+qed
+
 end
-
-
-
-(* locale limited_actuarial_model = interest + limited_life_table
-
-sublocale limited_actuarial_model \<subseteq> actuarial_model
-  by standard
-
-context limited_actuarial_model
-begin
-
- lemma a'_defer_whole_term_life_beyond_nat: "$a'_{f\<bar>x} = $a'_{f\<bar>x;n}"
-  if "x+f+n \<ge> $\<omega>" "i > 0" "x < $\<omega>" for f n x :: nat
-  using psi_le_iff_omega_le x_lt_psi a'_defer_whole_term_life_beyond that
-  by (metis (no_types, lifting) of_nat_0_le_iff of_nat_add)
-
-lemma a'_whole_term_life_beyond_nat: "$a'_{x} = $a'_{x;n}"
-  if "x+n \<ge> $\<omega>" "i > 0" "x < $\<omega>" for f n x :: nat
-  using psi_le_iff_omega_le x_lt_psi a'_whole_term_life_beyond that
-  by (metis of_nat_0_le_iff of_nat_add)
-
-end
- *)
 
 end

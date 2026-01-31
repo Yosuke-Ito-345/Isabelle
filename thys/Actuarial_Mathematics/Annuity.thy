@@ -77,6 +77,63 @@ proof -
   unfolding ennPV_def by (rewrite nn_integral_interval_measure_Icc; simp)
 qed
 
+(* TODO : refactor proof with Valuation.PV_abg_fin *)
+lemma ennPV_fin: "ennPV < \<infinity>"
+proof -
+  have "{f..f+n} \<subseteq> {f-1<..f+n}" by force
+  hence "emeasure (IM abg) {f..f+n} \<le> emeasure (IM abg) {f-1<..f+n}"
+    by (rule emeasure_mono; simp)
+  also have "\<dots> < \<infinity>"
+    by (rewrite emeasure_interval_measure_Ioc_eq; simp add: monoD)
+  finally have emfin: "emeasure (IM abg) {f..f+n} < \<infinity>" .
+  define M where "M \<equiv> max ($v.^f) ($v.^(f+n))"
+  have "\<And>t. t \<in> {f..f+n} \<Longrightarrow> $v.^t \<le> M"
+  proof -
+    fix t assume tfth : "t \<in> {f..f+n}"
+    show "$v.^t \<le> M"
+    proof (cases \<open>$v < 1\<close>)
+      case True
+      with tfth show ?thesis
+        unfolding M_def by (simp add: powr_mono_both' v_pos)
+    next
+      case False
+      with tfth show ?thesis
+        unfolding M_def by (simp add: powr_mono) 
+    qed
+  qed
+  hence "(\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t \<partial>(IM abg)) \<le> (\<integral>\<^sup>+t\<in>{f..f+n}. M \<partial>(IM abg))"
+    by (intro nn_set_integral_mono; simp add: ennreal_leI)
+  also have "\<dots> = M * emeasure (IM abg) {f..f+n}"
+    by (rewrite nn_integral_cmult_indicator; simp)
+  also have "\<dots> < \<infinity>"
+    using emfin by (simp add: ennreal_mult_less_top)
+  finally show "ennPV < \<infinity>"
+    using ennPV_f_fn by simp
+qed
+
+lemma PV_set_integrable: "set_integrable (IM abg) {f..f+n} (\<lambda>t. $v.^t)"
+proof -
+  have "set_borel_measurable (IM abg) {f..f+n} (\<lambda>t. $v.^t)"
+    unfolding set_borel_measurable_def by simp
+  moreover have " (\<integral>\<^sup>+t\<in>{f..f+n}. ennreal (norm ($v.^t)) \<partial>(IM abg)) < \<infinity>"
+    using ennPV_f_fn ennPV_fin infinity_ennreal_def by simp
+  ultimately show ?thesis
+    by (rewrite set_integrable_iff_bounded; simp)
+qed
+
+lemma PV_f_fn: "PV = (\<integral>t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
+proof -
+  have "ennreal PV = ennPV"
+    using ennPV_fin ennPV_PV by simp
+  also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
+    using ennPV_f_fn by simp
+  also have "\<dots> = ennreal (\<integral>t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
+    using PV_set_integrable by (rewrite set_nn_integral_eq_set_integral; simp)
+  finally have "ennreal PV = ennreal (\<integral>t\<in>{f..f+n}. $v.^t \<partial>(IM abg))" .
+  thus ?thesis
+    by (rewrite ennreal_inj[THEN sym]; simp add: PV_nonneg)
+qed
+
 end
 
 subsection \<open>Deferred Continuous Perpetual Annuity\<close>

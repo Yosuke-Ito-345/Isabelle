@@ -903,6 +903,30 @@ next
   thus ?thesis by (rewrite nn_integral_powr_Icc_gen; simp add: assms)
 qed
 
+lemma nn_integral_powr_Ico_finite:
+  fixes a b c :: real
+  assumes "0 < c"
+  shows "(\<integral>\<^sup>+x\<in>{a..<b}. c.^x \<partial>lborel) < \<top>"
+proof -
+  have "(\<integral>\<^sup>+x\<in>{a..<b}. c.^x \<partial>lborel) \<le> (\<integral>\<^sup>+x\<in>{a..b}. c.^x \<partial>lborel)"
+    by (rule nn_set_integral_set_mono) force
+  also have "\<dots> < \<top>"
+    using nn_integral_powr_Icc_finite assms by simp
+  finally show ?thesis .
+qed
+
+lemma nn_integral_powr_Ioc_finite:
+  fixes a b c :: real
+  assumes "0 < c"
+  shows "(\<integral>\<^sup>+x\<in>{a<..b}. c.^x \<partial>lborel) < \<top>"
+proof -
+  have "(\<integral>\<^sup>+x\<in>{a<..b}. c.^x \<partial>lborel) \<le> (\<integral>\<^sup>+x\<in>{a..b}. c.^x \<partial>lborel)"
+    by (rule nn_set_integral_set_mono) force
+  also have "\<dots> < \<top>"
+    using nn_integral_powr_Icc_finite assms by simp
+  finally show ?thesis .
+qed
+
 lemma nn_integral_powr_Ici:
   fixes a c :: real
   assumes "0 < c" "c < 1"

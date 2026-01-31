@@ -12,3 +12,4 @@ This is the development repository for "Actuarial Mathematics" and related entri
 
 ## Contact
 - If you'd like to contribute, feel free to send [me](https://github.com/Yosuke-Ito-345) an email.
+

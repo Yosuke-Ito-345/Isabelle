@@ -36,7 +36,7 @@ lemma abg_measurable[measurable]: "abg \<in> borel_measurable borel"
 lemma abg_constant_on_f: "abg constant_on {..<f}"
   using abg_f_0 by (simp add: constant_on_def)
 
-lemma ennPV_f: "ennPV = (\<integral>\<^sup>+t\<in>{f..}. $v.^t \<partial>(IM abg))"
+lemma ennPV_abg_f: "ennPV = (\<integral>\<^sup>+t\<in>{f..}. $v.^t \<partial>(IM abg))"
   unfolding ennPV_def using abg_constant_on_f by (rewrite nn_integral_interval_measure_Ici; simp)
 
 lemma PV_nonneg: "PV \<ge> 0"
@@ -61,7 +61,7 @@ begin
 lemma abg_constant_on_fn: "abg constant_on {f+n..}"
   using abg_eq_fn by (meson atLeast_iff constant_on_def)
 
-lemma ennPV_fn: "ennPV = (\<integral>\<^sup>+t\<in>{..f+n}. $v.^t \<partial>(IM abg))"
+lemma ennPV_abg_fn: "ennPV = (\<integral>\<^sup>+t\<in>{..f+n}. $v.^t \<partial>(IM abg))"
 proof -
   have "abg constant_on {f+n<..}"
     using abg_constant_on_fn by (meson Ioi_le_Ico constant_on_subset)
@@ -69,7 +69,7 @@ proof -
   unfolding ennPV_def using abg_constant_on_fn by (rewrite nn_integral_interval_measure_Iic; simp)
 qed
 
-lemma ennPV_f_fn: "ennPV = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
+lemma ennPV_abg_f_fn: "ennPV = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
 proof -
   have "abg constant_on {f+n<..}"
     using abg_constant_on_fn by (meson Ioi_le_Ico constant_on_subset)
@@ -108,27 +108,28 @@ proof -
   also have "\<dots> < \<infinity>"
     using emfin by (simp add: ennreal_mult_less_top)
   finally show "ennPV < \<infinity>"
-    using ennPV_f_fn by simp
+    using ennPV_abg_f_fn by simp
 qed
 
-lemma PV_set_integrable: "set_integrable (IM abg) {f..f+n} (\<lambda>t. $v.^t)"
+(* TODO: generalize to any bounded function? *)
+lemma PV_abg_set_integrable: "set_integrable (IM abg) {f..f+n} (\<lambda>t. $v.^t)"
 proof -
   have "set_borel_measurable (IM abg) {f..f+n} (\<lambda>t. $v.^t)"
     unfolding set_borel_measurable_def by simp
   moreover have " (\<integral>\<^sup>+t\<in>{f..f+n}. ennreal (norm ($v.^t)) \<partial>(IM abg)) < \<infinity>"
-    using ennPV_f_fn ennPV_fin infinity_ennreal_def by simp
+    using ennPV_abg_f_fn ennPV_fin infinity_ennreal_def by simp
   ultimately show ?thesis
     by (rewrite set_integrable_iff_bounded; simp)
 qed
 
-lemma PV_f_fn: "PV = (\<integral>t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
+lemma PV_abg_f_fn: "PV = (\<integral>t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
 proof -
   have "ennreal PV = ennPV"
     using ennPV_fin ennPV_PV by simp
   also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
-    using ennPV_f_fn by simp
+    using ennPV_abg_f_fn by simp
   also have "\<dots> = ennreal (\<integral>t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
-    using PV_set_integrable by (rewrite set_nn_integral_eq_set_integral; simp)
+    using PV_abg_set_integrable by (rewrite set_nn_integral_eq_set_integral; simp)
   finally have "ennreal PV = ennreal (\<integral>t\<in>{f..f+n}. $v.^t \<partial>(IM abg))" .
   thus ?thesis
     by (rewrite ennreal_inj[THEN sym]; simp add: PV_nonneg)
@@ -248,7 +249,7 @@ proof -
 
   text \<open>Proof of "PV_calc"\<close>
   have "ennPV = (\<integral>\<^sup>+t\<in>{f..}. $v.^t \<partial>(IM abg))"
-    by (rewrite ennPV_f; simp)
+    by (rewrite ennPV_abg_f; simp)
   also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..}. $v.^t \<partial>lborel)"
     by (rewrite set_nn_integral_interval_measure_abg; simp)
   also have "\<dots> = ennreal (LBINT t:{f..}. $v.^t)"
@@ -380,7 +381,7 @@ proof -
 
   text \<open>Proof of "PV_calc"\<close>
   have "ennPV = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
-    by (rewrite ennPV_f_fn; simp)
+    by (rewrite ennPV_abg_f_fn; simp)
   also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t \<partial>lborel)"
     by (rewrite set_nn_integral_interval_measure_abg; simp)
   also have "\<dots> = ennreal (LBINT t:{f..f+n}. $v.^t)"

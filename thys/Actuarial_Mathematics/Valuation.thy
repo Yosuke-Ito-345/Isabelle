@@ -316,43 +316,16 @@ proof -
   finally show ?thesis .
 qed
 
-(* TODO: generalize these lemmas to the interval integral of any bounded measurable function *)
+(* TODO: change names of these lemmas *)
 
 lemma ennPV_abg_fin:
   fixes \<theta>::real
   shows "(\<integral>\<^sup>+t\<in>{f..<\<theta>}. $v.^t \<partial>(IM abg)) < \<infinity>"
 proof -
-  fix \<theta>
-  have "{f..<\<theta>} \<subseteq> {f-1<..\<theta>}" by force
-  hence "emeasure (IM abg) {f..<\<theta>} \<le> emeasure (IM abg) {f-1<..\<theta>}"
-    by (rule emeasure_mono; simp)
-  also have "\<dots> < \<infinity>"
-    by (rewrite emeasure_interval_measure_Ioc_eq; simp add: monoD)
-  finally have emfin: "emeasure (IM abg) {f..<\<theta>} < \<infinity>" .
-  define M where "M \<equiv> max ($v.^f) ($v.^\<theta>)"
-  have "\<And>t. t \<in> {f..<\<theta>} \<Longrightarrow> $v.^t \<le> M"
-  proof -
-    fix t assume tfth : "t \<in> {f..<\<theta>}"
-    show "$v.^t \<le> M"
-    proof (cases \<open>$v < 1\<close>)
-      case True
-      with tfth show ?thesis
-        unfolding M_def by (simp add: powr_mono_both' v_pos)
-    next
-      case False
-      with tfth show ?thesis
-        unfolding M_def
-        by (metis atLeastLessThan_iff less_eq_real_def
-            linorder_le_less_linear powr_mono le_max_iff_disj)
-    qed
-  qed
-  hence "(\<integral>\<^sup>+t\<in>{f..<\<theta>}. $v.^t \<partial>(IM abg)) \<le> (\<integral>\<^sup>+t\<in>{f..<\<theta>}. M \<partial>(IM abg))"
-    by (intro nn_set_integral_mono; simp add: ennreal_leI)
-  also have "\<dots> = M * emeasure (IM abg) {f..<\<theta>}"
-    by (rewrite nn_integral_cmult_indicator; simp)
-  also have "\<dots> < \<infinity>"
-    using emfin by (simp add: ennreal_mult_less_top)
-  finally show "(\<integral>\<^sup>+t\<in>{f..<\<theta>}. $v.^t \<partial>(IM abg)) < \<infinity>" .
+  have "\<And>t. f \<le> t \<and> t < \<theta> \<Longrightarrow> ennreal ($v.^t) \<le> ennreal (max ($v.^f) ($v.^\<theta>))"
+    using ennreal_leI by (smt (verit) f_nonneg powr_less_mono powr_mono_both' v_pos)
+  thus "(\<integral>\<^sup>+t\<in>{f..<\<theta>}. $v.^t \<partial>(IM abg)) < \<infinity>"
+    by (intro set_nn_integral_interval_measure_bounded_finite[where M="max ($v.^f) ($v.^\<theta>)"]; simp)
 qed
 
 lemma PV_abg_set_integrable:
@@ -361,7 +334,7 @@ lemma PV_abg_set_integrable:
 proof -
   have "set_borel_measurable (IM abg) {f..<\<theta>} (\<lambda>t. $v.^t)"
     unfolding set_borel_measurable_def by measurable
-  thus ?thesis
+  then show ?thesis 
     using ennPV_abg_fin by (rewrite set_integrable_iff_bounded) auto
 qed
 

@@ -2,6 +2,41 @@ theory Annuity
   imports "Wlog.Wlog" "Lebesgue_Stieltjes_Integral.Lebesgue_Stieltjes_Integral" Interest 
 begin
 
+declare [[show_types]]
+
+section \<open>Auxiliary lemmas\<close>
+
+(* TODO: move this lemma to LSI *)
+lemma set_nn_integral_interval_measure_bounded_finite:
+  fixes F :: "real \<Rightarrow> real" and h :: "real \<Rightarrow> ennreal" and A :: "real set" and M::real
+  assumes "bounded A" "\<And>x. x \<in> A \<Longrightarrow> h x \<le> M" "A \<in> sets borel" and
+    "mono F" "\<And>x. continuous (at_right x) F"
+  shows "(\<integral>\<^sup>+x\<in>A. h x \<partial>(interval_measure F)) < \<infinity>"
+proof -
+  let ?IMF = "interval_measure F"
+  obtain a where a_ub: "\<And>x. x \<in> A \<Longrightarrow> \<bar>x\<bar> \<le> a"
+    using bounded_iff assms by force
+  define c where "c \<equiv> \<bar>a\<bar> + 1"
+  have [simp]: "c > 0"
+    unfolding c_def by auto
+  have Ac: "A \<subseteq> {-c<..c}"
+    using a_ub c_def by force
+  have "(\<integral>\<^sup>+x\<in>A. h x \<partial>?IMF) \<le> (\<integral>\<^sup>+x\<in>A. M \<partial>?IMF)"
+    using nn_set_integral_mono assms by (simp add: indicator_def nn_integral_mono)
+  also have "\<dots> \<le> (\<integral>\<^sup>+x\<in>{-c<..c}. M \<partial>?IMF)"
+    using nn_set_integral_set_mono Ac by force
+  also have "\<dots> = M * emeasure ?IMF {-c<..c}"
+    by (rewrite nn_integral_cmult_indicator; simp)
+  also have "\<dots> \<le> \<bar>M\<bar> * emeasure ?IMF {-c<..c}"
+    using abs_ge_self by (simp add: mult_right_mono)
+  also have "emeasure ?IMF {-c<..c} = F c - F (-c)"
+    by (simp add: emeasure_interval_measure_Ioc_eq ennreal_eq_0_iff monoD assms)
+  finally have "(\<integral>\<^sup>+x\<in>A. h x \<partial>?IMF) \<le> \<bar>M\<bar> * (F c - F (-c))"
+    by (simp add: ennreal_mult')
+  then show ?thesis
+    by (simp add: le_less_trans)
+qed
+
 text \<open>
   In this theory, I describe various kinds of annuities certain in a uniform way.
   I will also use this formulation to introduce life annuities.
@@ -77,38 +112,16 @@ proof -
   unfolding ennPV_def by (rewrite nn_integral_interval_measure_Icc; simp)
 qed
 
-(* TODO : refactor proof with Valuation.PV_abg_fin *)
 lemma ennPV_fin: "ennPV < \<infinity>"
 proof -
-  have "{f..f+n} \<subseteq> {f-1<..f+n}" by force
-  hence "emeasure (IM abg) {f..f+n} \<le> emeasure (IM abg) {f-1<..f+n}"
-    by (rule emeasure_mono; simp)
-  also have "\<dots> < \<infinity>"
-    by (rewrite emeasure_interval_measure_Ioc_eq; simp add: monoD)
-  finally have emfin: "emeasure (IM abg) {f..f+n} < \<infinity>" .
-  define M where "M \<equiv> max ($v.^f) ($v.^(f+n))"
-  have "\<And>t. t \<in> {f..f+n} \<Longrightarrow> $v.^t \<le> M"
-  proof -
-    fix t assume tfth : "t \<in> {f..f+n}"
-    show "$v.^t \<le> M"
-    proof (cases \<open>$v < 1\<close>)
-      case True
-      with tfth show ?thesis
-        unfolding M_def by (simp add: powr_mono_both' v_pos)
-    next
-      case False
-      with tfth show ?thesis
-        unfolding M_def by (simp add: powr_mono) 
-    qed
-  qed
-  hence "(\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t \<partial>(IM abg)) \<le> (\<integral>\<^sup>+t\<in>{f..f+n}. M \<partial>(IM abg))"
-    by (intro nn_set_integral_mono; simp add: ennreal_leI)
-  also have "\<dots> = M * emeasure (IM abg) {f..f+n}"
-    by (rewrite nn_integral_cmult_indicator; simp)
-  also have "\<dots> < \<infinity>"
-    using emfin by (simp add: ennreal_mult_less_top)
-  finally show "ennPV < \<infinity>"
-    using ennPV_abg_f_fn by simp
+  { fix t assume "t \<in> {f..f+n}"
+    hence "$v.^t \<le> max ($v.^f) ($v.^(f+n))"
+      by (metis atLeastAtMost_iff linear linorder_not_le max.coboundedI1 max.coboundedI2
+          powr_le_cancel_iff powr_mono' v_pos) }
+  thus ?thesis
+    apply (rewrite ennPV_abg_f_fn)
+    apply (rule set_nn_integral_interval_measure_bounded_finite[where M="max ($v.^f) ($v.^(f+n))"])
+    by (simp_all add: ennreal_leI)
 qed
 
 (* TODO: generalize to any bounded function? *)

@@ -124,19 +124,20 @@ proof -
     by (simp_all add: ennreal_leI)
 qed
 
-(* TODO: generalize to any bounded function? *)
-lemma PV_abg_set_integrable: "set_integrable (IM abg) {f..f+n} (\<lambda>t. $v.^t)"
+lemma
+  PV_abg_set_integrable: "set_integrable (IM abg) {f..f+n} (\<lambda>t. $v.^t)" and
+  PV_abg_f_fn: "PV = (\<integral>t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
 proof -
+
+  text \<open>Proof of "PV_abg_set_integrable"\<close>
   have "set_borel_measurable (IM abg) {f..f+n} (\<lambda>t. $v.^t)"
     unfolding set_borel_measurable_def by simp
   moreover have " (\<integral>\<^sup>+t\<in>{f..f+n}. ennreal (norm ($v.^t)) \<partial>(IM abg)) < \<infinity>"
     using ennPV_abg_f_fn ennPV_fin infinity_ennreal_def by simp
-  ultimately show ?thesis
+  ultimately show PV_abg_set_integrable: "set_integrable (IM abg) {f..f+n} (\<lambda>t. $v.^t)"
     by (rewrite set_integrable_iff_bounded; simp)
-qed
 
-lemma PV_abg_f_fn: "PV = (\<integral>t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
-proof -
+  text \<open>Proof of "PV_abg_f_fn"\<close>
   have "ennreal PV = ennPV"
     using ennPV_fin ennPV_PV by simp
   also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
@@ -144,8 +145,9 @@ proof -
   also have "\<dots> = ennreal (\<integral>t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
     using PV_abg_set_integrable by (rewrite set_nn_integral_eq_set_integral; simp)
   finally have "ennreal PV = ennreal (\<integral>t\<in>{f..f+n}. $v.^t \<partial>(IM abg))" .
-  thus ?thesis
+  thus "PV = (\<integral>t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
     by (rewrite ennreal_inj[THEN sym]; simp add: PV_nonneg)
+
 qed
 
 end

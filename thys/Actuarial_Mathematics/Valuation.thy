@@ -19,6 +19,7 @@ interpretation alivex_PS: prob_space "\<MM> \<downharpoonright> alive x"
 
 interpretation distrTx_RD: real_distribution "distr (\<MM> \<downharpoonright> alive x) borel (T x)" by simp
 
+(* delete if not needed *)
 lemma nn_integral_toTx_p:
   fixes \<BB> :: "real measure"
   assumes "sets \<BB> = sets borel" "sigma_finite_measure \<BB>" "g \<in> borel_measurable \<BB>"

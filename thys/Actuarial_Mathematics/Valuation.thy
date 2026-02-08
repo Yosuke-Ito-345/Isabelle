@@ -19,7 +19,7 @@ interpretation alivex_PS: prob_space "\<MM> \<downharpoonright> alive x"
 
 interpretation distrTx_RD: real_distribution "distr (\<MM> \<downharpoonright> alive x) borel (T x)" by simp
 
-(* delete if not needed *)
+(* delete if this is used only for proving lemma ennAPV_nn_integral_interval_measure_abg *)
 lemma nn_integral_toTx_p:
   fixes \<BB> :: "real measure"
   assumes "sets \<BB> = sets borel" "sigma_finite_measure \<BB>" "g \<in> borel_measurable \<BB>"
@@ -157,14 +157,19 @@ lemma ennAPV_APV:
   assumes "\<And>\<theta>. \<theta> > 0 \<Longrightarrow> (\<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) < \<infinity>" "ennAPV x < \<infinity>"
   shows "ennAPV x = ennreal (APV x)"
 proof -
-  have "ennAPV x = \<integral>\<^sup>+\<xi>. ennreal (\<integral>t. $v.^(tp (T x \<xi>) t) \<partial>(IM (ab (T x \<xi>)))) \<partial>(\<MM> \<downharpoonright> alive x)"
-    unfolding ennAPV_def apply(rule nn_integral_cong)
-    apply (rewrite nn_integral_eq_integral; simp?)
-    using assms(1) by (intro integrableI_bounded; simp)
+  have "\<And>\<xi>. \<xi> \<in> space (\<MM> \<downharpoonright> alive x) \<Longrightarrow> integrable (IM (ab (T x \<xi>))) (\<lambda>t. $v.^(tp (T x \<xi>) t))"
+    using assms by (intro integrableI_bounded; simp)
+  hence "ennAPV x = \<integral>\<^sup>+\<xi>. ennreal (\<integral>t. $v.^(tp (T x \<xi>) t) \<partial>(IM (ab (T x \<xi>)))) \<partial>(\<MM> \<downharpoonright> alive x)"
+    unfolding ennAPV_def apply (intro nn_integral_cong)
+    by (rewrite nn_integral_eq_integral; simp)
   also have "\<dots> = ennreal (APV x)"
-    unfolding APV_def apply (rewrite nn_integral_eq_integral; simp?)
-    using calculation assms(2) by (intro integrableI_bounded; simp)
-  finally show ?thesis. 
+  proof -
+    have " integrable (\<MM> \<downharpoonright> alive x) (\<lambda>\<xi>. LINT t | IM (ab (T x \<xi>)). $v.^(tp (T x \<xi>) t))"
+      using calculation assms by (intro integrableI_bounded; simp)
+    thus ?thesis
+      unfolding APV_def by (rewrite nn_integral_eq_integral; simp)
+  qed
+  finally show ?thesis .
 qed
 
 end
@@ -337,7 +342,7 @@ proof -
     using ennPVs_abg_fin by (rewrite set_integrable_iff_bounded) auto
 qed
 
-corollary ennPVs_abg_set_integral:
+corollary ennPVs_abg_PVs:
   fixes \<theta>::real
   shows "(\<integral>\<^sup>+t\<in>{f..<\<theta>}. $v.^t \<partial>(IM abg)) = ennreal (\<integral>t\<in>{f..<\<theta>}. $v.^t \<partial>(IM abg))"
   using PVs_abg_set_integrable by (rewrite set_nn_integral_eq_set_integral; simp)
@@ -367,7 +372,7 @@ corollary PVs_integrable:
   shows "integrable (IM (ab \<theta>)) (\<lambda>t. $v.^(tp \<theta> t))"
   using ennPVs_fin by (rewrite integrable_iff_bounded; simp)
 
-corollary ennPVs_lebesgue_integral:
+corollary ennPVs_PVs:
   fixes \<theta>::real
   shows "(\<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) = ennreal (\<integral>t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>)))"
   using PVs_integrable by (rewrite nn_integral_eq_integral; simp)
@@ -395,7 +400,7 @@ lemma APV_PV_abg:
 proof -
 
   have "(\<lambda>\<theta>. (\<integral>t\<in>{f..<\<theta>}. $v.^t \<partial>(IM abg))) \<in> borel_measurable borel"
-    using ennPVs_abg_set_integral ennPVs_abg_measurable by simp
+    using ennPVs_abg_PVs ennPVs_abg_measurable by simp
   hence [measurable]: "(\<lambda>\<xi>. set_lebesgue_integral (IM abg) {f..<T x \<xi>} ((.^) ($v)))
     \<in> borel_measurable (\<MM> \<downharpoonright> alive x)"
     using PVs_measurable by simp
@@ -772,7 +777,7 @@ proof -
       by (rule exI[of _ 0]) simp
 
     have "ennreal (\<integral>t\<in>{0..< T x \<xi>}. $v.^t \<partial>(IM cpa.abg)) = (\<integral>\<^sup>+t\<in>{0..< T x \<xi>}. $v.^t \<partial>(IM cpa.abg))"
-      using vcwla.ennPVs_abg_set_integral by simp
+      using vcwla.ennPVs_abg_PVs by simp
     also have "\<dots> = (\<integral>\<^sup>+t\<in>{0.. T x \<xi>}. $v.^t \<partial>(IM cpa.abg))"
       by (rewrite nn_integral_null_delta[OF _ _ sdTx]; simp)
     also have "\<dots> = dcta.ennPV"

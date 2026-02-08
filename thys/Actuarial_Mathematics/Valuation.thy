@@ -234,8 +234,14 @@ qed
 lemma abg_tendsto_Sup_th:
   fixes \<theta>::real
   shows "(abg \<longlongrightarrow> Sup (abg ` {..<\<theta>})) (at_left \<theta>)"
-  apply (rule Lim_left_bound[where I=UNIV and K="abg \<theta>", simplified])
-  using abg_mono monoD order_less_imp_le by blast+
+proof -
+  have "\<And>s t. s \<le> t \<Longrightarrow> abg s \<le> abg t"
+    using abg_mono monoD by blast
+  moreover have "\<And>t. t < \<theta> \<Longrightarrow> abg t \<le> abg \<theta>"
+    using abg_mono monoD order_less_imp_le by blast
+  ultimately show ?thesis
+    using Lim_left_bound[of UNIV \<theta> abg "abg \<theta>"] by simp
+qed
 
 corollary Sup_abg_ab:
   fixes \<theta>::real
@@ -566,7 +572,8 @@ proof -
     by (rewrite set_integrable_iff_bounded; simp)
 
   text \<open>Proof of "APV_calc"\<close>
-  have "ennreal (APV x) = ennAPV x" using ennAPV_fin ennPVs_fin ennAPV_APV assms by simp
+  have "ennreal (APV x) = ennAPV x"
+    using ennAPV_fin ennPVs_fin ennAPV_APV assms by simp
   also have "\<dots> = ennreal (LBINT t:{f..}. $v.^t * $p_{t&x})"
     apply (rewrite ennAPV_calc, simp add: assms)
     using APV_set_integrable assms by (rewrite set_nn_integral_eq_set_integral; simp)
@@ -587,7 +594,30 @@ sublocale val_defer_cont_term_life_ann \<subseteq> val_term_life_ann i l f abg n
 context val_defer_cont_term_life_ann
 begin
 
-(* TODO : imitate subsection \<open>Deferred Continuous Whole Life Annuity\<close> *)
+lemma ennAPV_calc: 
+  fixes x::real
+  assumes "x < $\<psi>"
+  shows "ennAPV x = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t * $p_{t&x} \<partial>lborel)"
+proof -
+  have "ennAPV x = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t * $p_{t&x} \<partial>(IM abg))"
+    by (rule ennAPV_term_nn_integral_interval_measure_abg, simp add: assms)
+  also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t * $p_{t&x} \<partial>lborel)"
+    by (rule set_nn_integral_interval_measure_abg; simp add: assms)
+  finally show ?thesis .
+qed
+
+lemma ennAPV_fin:
+  fixes x::real
+  assumes "x < $\<psi>"
+  shows "ennAPV x < \<infinity>"
+proof -
+  have "ennAPV x \<le> (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t \<partial>lborel)"
+    apply (rewrite ennAPV_calc, simp add: assms)
+    by (rule nn_set_integral_mono; simp add: assms mult_left_le)
+  also have "\<dots> < \<infinity>"
+    using nn_integral_powr_Icc_finite v_pos by simp
+  finally show "ennAPV x < \<infinity>" .
+qed
 
 lemma
   fixes x::real
@@ -607,48 +637,12 @@ proof -
     by (rule set_integrable_bound)
 
   text \<open>Proof of "APV_calc"\<close>
-  have "ennAPV x = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t * $p_{t&x} \<partial>(IM abg))"
-    by (rule ennAPV_term_nn_integral_interval_measure_abg, simp add: assms)
-  also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t * $p_{t&x} \<partial>lborel)"
-    by (rule set_nn_integral_interval_measure_abg; simp add: assms)
-  also have "\<dots> = (LBINT t:{f..f+n}. $v.^t * $p_{t&x})"
+  have "ennreal (APV x) = ennAPV x"
+    using ennPVs_fin ennAPV_APV ennAPV_fin assms by (rewrite ennAPV_APV; simp)
+  also have "\<dots> = ennreal (LBINT t:{f..f+n}. $v.^t * $p_{t&x})"
+    apply (rewrite ennAPV_calc, simp add: assms)
     using APV_set_integrable assms v_pos by (rewrite set_nn_integral_eq_set_integral; simp)
-  finally have enn: "ennAPV x = (LBINT t:{f..f+n}. $v.^t * $p_{t&x})" .
-  hence "ennAPV x < \<infinity>" by simp
-  moreover have "\<And>\<theta>. \<theta> > 0 \<Longrightarrow> (\<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) < \<infinity>"
-  proof -
-    fix \<theta>::real assume "\<theta> > 0"
-    have "(\<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) = (\<integral>\<^sup>+t\<in>{f..<\<theta>}. $v.^t \<partial>(IM abg))"
-      by (rewrite ennPVs_abg; simp)
-    also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..< min (f+n) \<theta>}. $v.^t \<partial>(IM abg))"
-    proof -
-      have "(\<integral>\<^sup>+t\<in>{f..<\<theta>}. $v.^t \<partial>(IM abg)) =
-        (\<integral>\<^sup>+t\<in>{f..< min (f+n) \<theta>} \<union> {min (f+n) \<theta> ..<\<theta>}. $v.^t \<partial>(IM abg))"
-        apply (rule set_nn_integral_cong, simp)
-        using less_eq_real_def n_nonneg by force+
-      also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..< min (f+n) \<theta>}. $v.^t \<partial>(IM abg)) +
-        (\<integral>\<^sup>+t\<in>{min (f+n) \<theta> ..<\<theta>}. $v.^t \<partial>(IM abg))"
-        by (rewrite nn_integral_disjoint_pair; simp)
-      also have "(\<integral>\<^sup>+t\<in>{min (f+n) \<theta> ..<\<theta>}. $v.^t \<partial>(IM abg)) = 0"
-      proof -
-        have "abg - (\<lambda>_. n) constant_on {min (f + n) \<theta> <..<\<theta>}"
-          unfolding fun_diff_def constant_on_def
-          by (rule exI[of _ 0], safe, rewrite abg_fn; force)
-        thus ?thesis
-          using interval_measure_const_null
-          by (rewrite Ico_Cont_nn_integral_interval_measure_cong[of abg "\<lambda>_. n"]; simp)
-        qed
-      finally show ?thesis by simp
-    qed
-    also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..< min (f+n) \<theta>}. $v.^t \<partial>lborel)"
-      by (rule set_nn_integral_interval_measure_abg) auto
-    also have "\<dots> \<le> (\<integral>\<^sup>+t\<in>{f.. min (f+n) \<theta>}. $v.^t \<partial>lborel)"
-      by (rule nn_set_integral_set_mono, simp add: atLeastLessThan_subseteq_atLeastAtMost_iff)
-    also have "\<dots> < \<infinity>" using nn_integral_powr_Icc_finite v_pos by simp
-    finally show "(\<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) < \<infinity>" .
-  qed
-  ultimately have "APV x = ennAPV x" using ennAPV_APV by simp
-  with enn show "APV x = (LBINT t:{f..f+n}. $v.^t * $p_{t&x})"
+  finally show "APV x = (LBINT t:{f..f+n}. $v.^t * $p_{t&x})"
     using ennreal_inj assms APV_nonneg by simp
 
 qed
@@ -792,7 +786,6 @@ proof -
   hence "(\<integral>\<xi>. (\<integral>t\<in>{0..< T x \<xi>}. $v.^t \<partial>(IM cpa.abg)) \<partial>(\<MM> \<downharpoonright> alive x)) =
     (\<integral>\<xi>. annuity.PV i (defer_cont_term_ann.abg 0 (T x \<xi>)) \<partial>(\<MM> \<downharpoonright> alive x))"
     by (intro Bochner_Integration.integral_cong; simp)
-
   thus ?thesis
     unfolding APV_defer_cont_whole_life_ann_def PV_defer_cont_term_ann_def using vcwla.ennAPV_fin
     by (rewrite vcwla.APV_PV_abg; simp add: that)

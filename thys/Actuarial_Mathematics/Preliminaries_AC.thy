@@ -6,9 +6,6 @@ notation powr (infixr \<open>.^\<close> 80)
 
 section \<open>Preliminary Lemmas\<close>
 
-lemma Collect_conj_eq2: "{x \<in> A. P x \<and> Q x} = {x \<in> A. P x} \<inter> {x \<in> A. Q x}"
-  by blast
-
 lemma vimage_compl_atMost:
   fixes f :: "'a \<Rightarrow> 'b::linorder"
   shows "-(f -` {..y}) = f -` {y<..}"
@@ -136,29 +133,25 @@ lemma(in field) divide_mult_cancel[simp]: fixes a b assumes "b \<noteq> 0"
 lemma inverse_powr: "(1/a).^b = a.^-b" if "a > 0" for a b :: real
   by (simp add: powr_divide powr_minus_divide)
 
-lemma geometric_increasing_sum_aux: "(1-r)^2 * (\<Sum>k<n. (k+1)*r^k) = 1 - (n+1)*r^n + n*r^(n+1)"
+lemma geometric_increasing_sum_aux: "(1-r)\<^sup>2 * (\<Sum>k<n. (k+1)*r^k) = 1 - (n+1)*r^n + n*r^(n+1)"
   for n::nat and r::real
 proof (induct n)
   case 0
   thus ?case by simp
 next
   case (Suc n)
-  thus ?case
-    apply (simp only: sum.lessThan_Suc)
-    apply (subst distrib_left)
-    apply (subst Suc.hyps)
-    by (subst power2_diff) (simp add: field_simps power2_eq_square)
+  have "(1-r)\<^sup>2 * (\<Sum>k < Suc n. (k+1)*r^k) = (1-r)\<^sup>2 * (\<Sum>k<n. (k+1)*r^k) + (1-r)\<^sup>2 * ((n+1)*r^n)"
+    using sum.lessThan_Suc by (simp add: field_simps)
+  also have "\<dots> = 1 - (n+1)*r^n + n*r^(n+1) + (1-r)\<^sup>2 * ((n+1)*r^n)"
+    using Suc.hyps by simp
+  also have "\<dots> = 1 - (n+2)*r^(n+1) + (n+1)*r^(n+2)"
+    by (simp add: field_simps power2_eq_square)
+  finally show ?case by simp
 qed
 
 lemma geometric_increasing_sum: "(\<Sum>k<n. (k+1)*r^k) = (1 - (n+1)*r^n + n*r^(n+1)) / (1-r)^2"
   if "r \<noteq> 1" for n::nat and r::real
-  by (subst geometric_increasing_sum_aux[THEN sym]) (simp add: that)
-
-(* Already included in Topologial_Spaces.thy *)
-lemma Lim_cong:
-  assumes "\<forall>\<^sub>F x in F. f x = g x"
-  shows "Lim F f = Lim F g"
-  unfolding t2_space_class.Lim_def using tendsto_cong assms by fastforce
+  by (rewrite geometric_increasing_sum_aux[THEN sym]) (simp add: that)
 
 lemma LIM_zero_iff': "((\<lambda>x. l - f x) \<longlongrightarrow> 0) F = (f \<longlongrightarrow> l) F"
   for f :: "'a \<Rightarrow> 'b::real_normed_vector"

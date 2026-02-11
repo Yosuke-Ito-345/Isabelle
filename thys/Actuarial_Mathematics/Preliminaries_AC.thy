@@ -130,7 +130,7 @@ lemma(in field) divide_mult_cancel[simp]: fixes a b assumes "b \<noteq> 0"
   shows "a / b * b = a"
   by (simp add: assms)
 
-lemma inverse_powr: "(1/a).^b = a.^-b" if "a > 0" for a b :: real
+lemma divide_powr: "(1/a).^b = a.^-b" for a b :: real
   by (simp add: powr_divide powr_minus_divide)
 
 lemma geometric_increasing_sum_aux: "(1-r)\<^sup>2 * (\<Sum>k<n. (k+1)*r^k) = 1 - (n+1)*r^n + n*r^(n+1)"
@@ -366,7 +366,7 @@ lemma DERIV_cmult_iff:
     ((\<lambda>x. c * f x) has_field_derivative c * D) (at x within s)"
 proof
   assume "(f has_field_derivative D) (at x within s)"
-  thus  "((\<lambda>x. c * f x) has_field_derivative c * D) (at x within s)" using DERIV_cmult by force
+  thus "((\<lambda>x. c * f x) has_field_derivative c * D) (at x within s)" using DERIV_cmult by force
 next
   assume "((\<lambda>x. c * f x) has_field_derivative c * D) (at x within s)"
   hence "((\<lambda>x. c * f x / c) has_field_derivative c * D / c) (at x within s)"
@@ -410,7 +410,7 @@ proof -
   ultimately show ?thesis using assms by (intro fundamental_theorem_of_calculus_interior; simp)
 qed
 
-lemma powr_at_top:
+lemma powr_at_top_at_top:
   fixes a::real
   assumes "a > 1"
   shows "filterlim (\<lambda>x. a.^x) at_top at_top"
@@ -424,15 +424,40 @@ proof -
   ultimately show ?thesis unfolding powr_def by(simp add: mult.commute)
 qed
 
+lemma powr_at_top_at_bot:
+  fixes a::real
+  assumes "0 < a" "a < 1"
+  shows "filterlim (\<lambda>x. a.^x) at_top at_bot"
+proof -
+  have "filterlim (\<lambda>x. (1/a).^x) at_top at_top"
+    by (rule powr_at_top_at_top) (simp add: assms)
+  thus ?thesis
+    by (metis (no_types, lifting) ext inverse_powr filterlim_at_top_mirror
+    inverse_eq_divide minus_minus powr_minus)
+qed
+
+lemma powr_0_at_bot:
+  fixes a::real
+  assumes "a > 1"
+  shows "((\<lambda>x. a.^x) \<longlongrightarrow> 0) at_bot"
+proof -
+  have "\<And>x. inverse ((1/a).^x) = a.^x"
+    using assms inverse_powr by (simp add: inverse_eq_divide)
+  moreover have "((\<lambda>x. inverse ((1/a).^x)) \<longlongrightarrow> 0) at_bot"
+    apply (intro tendsto_inverse_0_at_top powr_at_top_at_bot)
+    using assms by simp_all
+  ultimately show ?thesis by simp
+qed
+
 lemma powr_0_at_top:
   fixes a::real
   assumes "0 < a" "a < 1"
   shows "((\<lambda>x. a.^x) \<longlongrightarrow> 0) at_top"
 proof -
   have "\<And>x. inverse ((1/a).^x) = a.^x"
-    using assms by (rewrite inverse_powr; simp add: powr_minus)
+    using assms inverse_powr by (simp add: inverse_eq_divide)
   moreover have "((\<lambda>x. inverse ((1/a).^x)) \<longlongrightarrow> 0) at_top"
-    by (intro tendsto_inverse_0_at_top powr_at_top) (simp add: assms)
+    by (intro tendsto_inverse_0_at_top powr_at_top_at_top) (simp add: assms)
   ultimately show ?thesis by simp
 qed
 
@@ -457,6 +482,11 @@ proof -
   have f: "DERIV ?f x :> 1" by simp
   thus ?thesis using DERIV_fun_powr2[OF a_pos f] by simp
 qed
+
+corollary has_real_derivative_powr2_ln:
+  assumes "a > 0" "a \<noteq> 1"
+  shows "((\<lambda>x. a.^x / ln a) has_real_derivative a.^x) (at x)"
+  using assms by (intro derivative_eq_intros) (simp add: field_simps)+
 
 (* corollary to DERIV_shift *)
 lemma field_differentiable_shift:
@@ -804,17 +834,11 @@ lemma has_integral_powr2_from_0:
   shows "((\<lambda>x. a.^x) has_integral ((a.^c - 1) / (ln a))) {0..c}"
 proof -
   have "((\<lambda>x. a.^x) has_integral ((a.^c)/(ln a) - (a.^0)/(ln a))) {0..c}"
-  proof (rule fundamental_theorem_of_calculus[OF c_nneg])
-    fix x::real
-    assume "x \<in> {0..c}"
-    show "((\<lambda>y. a.^y / ln a) has_vector_derivative a.^x) (at x within {0..c})"
-      using has_real_derivative_powr2[OF a_pos, of x]
-            DERIV_cdivide[where c = "ln a"]
-      by(fastforce simp: assms has_real_derivative_iff_has_vector_derivative
-               intro!: has_vector_derivative_within_subset[where S=UNIV and T="{0..c}"])
-  qed
+    apply (rule fundamental_theorem_of_calculus[OF c_nneg])
+    apply (rule has_vector_derivative_within_subset[where S=UNIV and T="{0..c}"])
+    using has_real_derivative_iff_has_vector_derivative has_real_derivative_powr2_ln assms by simp+
   thus ?thesis
-    using assms powr_zero_eq_one by (simp add: field_simps)
+    using assms by (simp add: field_simps)
 qed
 
 lemma integrable_on_powr2_from_0:
@@ -835,6 +859,57 @@ next
   case False
   thus ?thesis
     using has_integral_powr2_from_0 False assms by auto
+qed
+
+(* counterpart of the lemma nn_integral_FTC_atLeast *)
+(* requesting to add to the standard distribution *)
+lemma nn_integral_FTC_atMost:
+  fixes f :: "real \<Rightarrow> real"
+  assumes f_borel: "f \<in> borel_measurable borel"
+  assumes f: "\<And>x. x \<le> b \<Longrightarrow> DERIV F x :> f x"
+  assumes nonneg: "\<And>x. x \<le> b \<Longrightarrow> 0 \<le> f x"
+  assumes lim: "(F \<longlongrightarrow> U) at_bot"
+  shows "(\<integral>\<^sup>+x. ennreal (f x) * indicator {.. b} x \<partial>lborel) = F b - U"
+proof -
+  let ?f = "\<lambda>(i::nat) (x::real). ennreal (f x) * indicator {b - real i .. b} x"
+  let ?fR = "\<lambda>x. ennreal (f x) * indicator {.. b} x"
+
+  have F_mono: "y \<le> b \<Longrightarrow> x \<le> y \<Longrightarrow> F x \<le> F y" for x y
+    using f nonneg by (intro DERIV_nonneg_imp_nondecreasing[of x y F]) (auto intro: order_trans)
+  then have F_ge_U: "x \<le> b \<Longrightarrow> F x \<ge> U" for x
+    by (intro tendsto_upperbound[OF lim])
+       (auto simp: eventually_at_bot_linorder)
+
+  have "(SUP i. ?f i x) = ?fR x" for x
+  proof (rule LIMSEQ_unique[OF LIMSEQ_SUP])
+    obtain n where "b - x < real n"
+      using reals_Archimedean2[of "b - x"] ..
+    then have "eventually (\<lambda>n. ?f n x = ?fR x) sequentially"
+      by (auto simp: frequently_def intro!: eventually_sequentiallyI[where c=n] split: split_indicator)
+    then show "(\<lambda>n. ?f n x) \<longlonglongrightarrow> ?fR x"
+      by (rule tendsto_eventually)
+  qed (auto simp: nonneg incseq_def le_fun_def split: split_indicator)
+  then have "integral\<^sup>N lborel ?fR = (\<integral>\<^sup>+ x. (SUP i. ?f i x) \<partial>lborel)"
+    by simp
+  also have "\<dots> = (SUP i. (\<integral>\<^sup>+ x. ?f i x \<partial>lborel))"
+  proof (rule nn_integral_monotone_convergence_SUP)
+    show "incseq ?f"
+      using nonneg by (auto simp: incseq_def le_fun_def split: split_indicator)
+    show "\<And>i. (?f i) \<in> borel_measurable lborel"
+      using f_borel by auto
+  qed
+  also have "\<dots> = (SUP i. ennreal (F b - F (b - real i)))"
+    by (subst nn_integral_FTC_Icc[OF f_borel f nonneg]) auto
+  also have "\<dots> = F b - U"
+  proof (rule LIMSEQ_unique[OF LIMSEQ_SUP])
+    have "LIM n sequentially. b - real n :> at_bot"
+      by real_asymp
+    then have "(\<lambda>n. F (b - real n)) \<longlonglongrightarrow> U"
+      using filterlim_compose lim by force
+    then show "(\<lambda>n. ennreal (F b - F (b - real n)) ) \<longlonglongrightarrow> ennreal (F b - U)"
+      by (simp add: F_mono F_ge_U tendsto_diff)
+  qed (auto simp: incseq_def intro!: ennreal_le_iff[THEN iffD2] F_mono)
+  finally show ?thesis .
 qed
 
 (* Stronger Version of lemma integral_power *)
@@ -863,10 +938,12 @@ proof -
   proof -
     fix x
     have "DERIV ?F x :> ?F x * ln c"
-      using DERIV_fun_powr2 assms by (intro derivative_eq_intros; simp) simp
-    thus "DERIV ?F x :> c.^x" using assms by simp
+      using DERIV_fun_powr2 assms by (intro derivative_eq_intros) simp+
+    thus "DERIV ?F x :> c.^x"
+      using assms by simp
   qed
-  thus ?thesis by (rewrite nn_integral_FTC_Icc[where F="?F"]; simp add: assms) argo
+  thus ?thesis
+     using assms by (rewrite nn_integral_FTC_Icc[where F="?F"]; simp add: field_simps)
 qed
 
 lemma nn_integral_powr_Icc_gen:
@@ -925,17 +1002,21 @@ lemma nn_integral_powr_Ici:
   assumes "0 < c" "c < 1"
   shows "(\<integral>\<^sup>+x\<in>{a..}. c.^x \<partial>lborel) = - (c.^a / ln c)"
 proof -
-  let ?F = "\<lambda>x. c.^x / ln c"
-  have "\<And>x. DERIV ?F x :> c.^x"
-  proof -
-    fix x
-    have "DERIV ?F x :> ?F x * ln c"
-      using DERIV_fun_powr2 assms by (intro derivative_eq_intros; simp) simp
-    thus "DERIV ?F x :> c.^x" using assms by simp
-  qed
-  moreover have "(?F \<longlongrightarrow> 0 / ln c) at_top"
+  have "((\<lambda>x. c.^x / ln c) \<longlongrightarrow> 0 / ln c) at_top"
     using assms by (intro tendsto_intros; simp add: powr_0_at_top)
-  ultimately show ?thesis by (rewrite nn_integral_FTC_atLeast[where F="?F"]; simp) simp
+  with has_real_derivative_powr2_ln show ?thesis
+    using assms by (rewrite nn_integral_FTC_atLeast) simp_all+
+qed
+
+lemma nn_integral_powr_Iic:
+  fixes b c :: real
+  assumes "1 < c"
+  shows "(\<integral>\<^sup>+x\<in>{..b}. c.^x \<partial>lborel) = c.^b / ln c"
+proof -
+  have "((\<lambda>x. c.^x / ln c) \<longlongrightarrow> 0 / ln c) at_bot"
+    using assms by (intro tendsto_intros; simp add: powr_0_at_bot)
+  with has_real_derivative_powr2_ln show ?thesis
+    using assms by (rewrite nn_integral_FTC_atMost) simp_all+
 qed
 
 lemma set_integrable_iff_bounded:

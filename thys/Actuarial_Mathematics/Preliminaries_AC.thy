@@ -2464,7 +2464,7 @@ proof -
     moreover have "\<And>a b. a \<le> b \<Longrightarrow>
       emeasure (distr M lborel X) {a<..b} = emeasure (density lborel f) {a<..b}"
     proof -
-      fix a b :: real assume "a \<le> b"
+      fix a b :: real assume ab: "a \<le> b"
       hence [simp]: "sym_diff {a<..b} {a..b} = {a}" by force
       have "emeasure (density lborel f) {a<..b} = (\<integral>\<^sup>+x\<in>{a<..b}. ennreal (f x) \<partial>lborel)"
         by (rewrite emeasure_density; simp)
@@ -2475,34 +2475,33 @@ proof -
       also have "\<dots> = ennreal (F b - F a)"
       proof -
         define g where "g x = (if x \<in> S then 0 else f x)" for x :: real
-        have [simp]: "\<And>x. g x \<ge> 0"
-          unfolding g_def
-          apply (split if_split, auto)
-          apply (rule mono_on_imp_deriv_nonneg[of UNIV F], auto)
-          unfolding F_def mono_on_def using distrX_FBM.cdf_nondecreasing apply blast
-          using assms unfolding F_def by force
-          (* TODO: fix this proof *)
         have "(\<integral>\<^sup>+x. ennreal (indicat_real {a..b} x * f x) \<partial>lborel)
           = \<integral>\<^sup>+x. ennreal (indicat_real {a..b} x * g x) \<partial>lborel"
           apply (rule nn_integral_cong_AE)
-          apply (rule AE_mp[where P= "\<lambda>x. x \<notin> S"])
-          using assms finite_imp_null_set_lborel AE_not_in
-           apply blast
-          unfolding g_def
-          apply simp
-          done
+          apply (rule AE_mp[where P="\<lambda>x. x \<notin> S"])
+          using assms finite_imp_null_set_lborel AE_not_in apply blast
+          unfolding g_def by simp
         also have "\<dots> = ennreal (F b - F a)"
-          apply (rewrite nn_integral_has_integral_lebesgue, simp)
-           apply (rule fundamental_theorem_of_calculus_strong[of S], auto simp: \<open>a \<le> b\<close> g_def assms)
-          using has_real_derivative_iff_has_vector_derivative assms apply presburger
-          using assms continuous_on_subset subsetI by fastforce
-          (* TODO: fix this proof *)
+        proof -
+          have "\<And>x. g x \<ge> 0"
+            unfolding g_def if_split apply safe
+            using assms distrX_FBM.cdf_nondecreasing
+            by (intro mono_on_imp_deriv_nonneg[of UNIV F]; simp add: monoI)
+          moreover have "\<And>x. x \<notin> S \<Longrightarrow> (F has_vector_derivative g x) (at x)"
+            using assms has_real_derivative_iff_has_vector_derivative g_def by simp
+          moreover have "continuous_on {a..b} F"
+            using assms continuous_on_subset by blast
+          ultimately show ?thesis
+            apply (rewrite nn_integral_has_integral_lebesgue, simp)
+            unfolding F_def
+            by (rule fundamental_theorem_of_calculus_strong[of S]) (auto simp add: ab assms)
+        qed
         finally show ?thesis .
       qed
       also have "\<dots> = emeasure (distr M lborel X) {a <.. b}"
-        using \<open>a \<le> b\<close>
+        using ab
         by (rewrite distrlX_FBM.emeasure_Ioc)
-           (auto simp: F_def cdf_def ennreal_minus[symmetric] distr_borel_lborel)
+          (auto simp: F_def cdf_def ennreal_minus[symmetric] distr_borel_lborel)
       finally show "emeasure (distr M lborel X) {a<..b} = emeasure (density lborel f) {a<..b}"
         by simp
     qed

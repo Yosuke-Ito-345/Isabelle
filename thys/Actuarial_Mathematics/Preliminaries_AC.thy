@@ -2637,7 +2637,7 @@ proof (rule measure_eqI)
     finally have "Sigma_Algebra.measure ((M \<downharpoonright> A) \<downharpoonright> B) C = MB_PS.prob C" .
     thus "emeasure ((M\<downharpoonright>A)\<downharpoonright>B) C = emeasure (M\<downharpoonright>B) C"
       by (rewrite finite_measure.emeasure_eq_measure, simp)+ simp
- qed
+  qed
 qed
 
 lemma cond_prob_space_prob:
@@ -2703,16 +2703,11 @@ lemma random_variable_cond_prob_space:
 lemma AE_cond_prob_space_iff:
   assumes "A \<in> events" "prob A > 0"
   shows "(AE x in M\<downharpoonright>A. P x) \<longleftrightarrow> (AE x in M. x \<in> A \<longrightarrow> P x)"
-proof -
-  have [simp]: "1 / emeasure M A > 0"
-    using assms divide_ennreal emeasure_eq_measure ennreal_1
-    by (simp add: ennreal_zero_less_divide)
-  show ?thesis
-    unfolding cond_prob_space_def
-    apply (rewrite AE_scale_measure_iff)
-     apply fact
-    by (rewrite AE_restrict_space_iff; simp add: assms)
-qed
+  unfolding cond_prob_space_def
+  apply (rewrite AE_scale_measure_iff)
+  using assms divide_ennreal emeasure_eq_measure ennreal_1
+   apply (simp add: ennreal_zero_less_divide)
+  by (rewrite AE_restrict_space_iff; simp add: assms)
 
 lemma integral_cond_prob_space_nn:
   assumes [measurable]:"A \<in> events" "prob A > 0"

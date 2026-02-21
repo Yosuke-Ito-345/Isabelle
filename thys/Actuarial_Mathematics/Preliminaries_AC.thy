@@ -2593,7 +2593,7 @@ proof -
 qed
 
 lemma cond_cond_prob_space:
-  assumes [measurable]:"A \<in> events" "B \<in> events" "B \<subseteq> A" "prob B > 0"
+  assumes [measurable]: "A \<in> events" "B \<in> events" "B \<subseteq> A" "prob B > 0"
   shows "(M\<downharpoonright>A)\<downharpoonright>B = M\<downharpoonright>B"
 proof (rule measure_eqI)
   have pA_pos[simp]: "prob A > 0" using assms by (smt (verit, ccfv_SIG) finite_measure_mono)
@@ -2611,8 +2611,7 @@ proof (rule measure_eqI)
         simp: prob_space_axioms)
   show sets_MAB: "sets ((M\<downharpoonright>A)\<downharpoonright>B) = sets (M\<downharpoonright>B)"
     apply (rewrite prob_space.sets_cond_prob_space)
-    using MA_PS.prob_space_axioms
-     apply presburger
+    using MA_PS.prob_space_axioms apply presburger
     apply (rewrite sets_cond_prob_space, unfold image_def)+
     using assms by blast
   show "\<And>C. C \<in> sets ((M\<downharpoonright>A)\<downharpoonright>B) \<Longrightarrow> emeasure ((M\<downharpoonright>A)\<downharpoonright>B) C = emeasure (M\<downharpoonright>B) C"
@@ -2624,14 +2623,21 @@ proof (rule measure_eqI)
     hence [simp]: "C \<in> events" and [simp]: "C \<subseteq> B" and [simp]: "C \<subseteq> A" using assms by auto
     hence [simp]: "C \<in> MA_PS.events"
       using assms by (rewrite sets_cond_prob_space, unfold image_def) blast
-    show "emeasure ((M\<downharpoonright>A)\<downharpoonright>B) C = emeasure (M\<downharpoonright>B) C"
-      apply (rewrite finite_measure.emeasure_eq_measure, simp)+
-      apply (rewrite ennreal_inj, simp_all)
-      apply (rewrite prob_space.measure_cond_prob_space_subset,
-          simp_all add: assms prob_space_axioms MA_PS.prob_space_axioms)+
-      using pA_pos by fastforce 
-      (* TODO: fix this proof *)
-  qed
+    have "Sigma_Algebra.measure ((M\<downharpoonright>A)\<downharpoonright>B) C = MA_PS.prob C / MA_PS.prob B"
+      by (rewrite prob_space.measure_cond_prob_space_subset; simp add: MA_PS.prob_space_axioms)
+    also have "MA_PS.prob C = prob C / prob A"
+      by (simp add: measure_cond_prob_space_subset)
+    also have "MA_PS.prob B = prob B / prob A"
+      by (simp add: assms measure_cond_prob_space_subset)
+    finally have "Sigma_Algebra.measure ((M\<downharpoonright>A)\<downharpoonright>B) C = (prob C / prob A) / (prob B / prob A)" .
+    also have "\<dots> = prob C / prob B"
+      using pA_pos by (smt (verit) divide_divide_eq_right divide_mult_cancel)
+    also have "\<dots> = MB_PS.prob C"
+      by (rewrite prob_space.measure_cond_prob_space_subset; simp add: prob_space_axioms assms)
+    finally have "Sigma_Algebra.measure ((M \<downharpoonright> A) \<downharpoonright> B) C = MB_PS.prob C" .
+    thus "emeasure ((M\<downharpoonright>A)\<downharpoonright>B) C = emeasure (M\<downharpoonright>B) C"
+      by (rewrite finite_measure.emeasure_eq_measure, simp)+ simp
+ qed
 qed
 
 lemma cond_prob_space_prob:

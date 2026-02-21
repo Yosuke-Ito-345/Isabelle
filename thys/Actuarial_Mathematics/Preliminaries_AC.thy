@@ -2530,10 +2530,9 @@ proof
   have "emeasure ?rMa (space ?rMa) = 1 / \<mu> a * emeasure ?Ma (space ?rMa)" by simp
   also have "\<dots> = 1 / \<mu> a * emeasure ?M (space ?rMa)"
     using assms
-    apply (rewrite emeasure_restrict_space)
-    apply (simp add: measure_space_def sigma_algebra.sets_measure_of_eq)
-    by (simp add: space_restrict_space space_scale_measure) simp
-    (* TODO: fix this proof *)
+    by (rewrite emeasure_restrict_space;
+        simp add: measure_space_def sigma_algebra.sets_measure_of_eq
+        space_restrict_space space_scale_measure)
   also have "\<dots> = 1 / \<mu> a * emeasure ?M (space ?Ma)" by (rewrite space_scale_measure) simp
   also have "\<dots> = 1 / \<mu> a * emeasure ?M a"
     using assms

@@ -1,6 +1,6 @@
 # Main Changes from afp-devel as of January 2026
 
-These are the main changes from afp-devel ba2f4470e120fa0c7e9e4aeb98345ac5d4c1b0cd.
+The following are the main changes from afp-devel ba2f4470e120fa0c7e9e4aeb98345ac5d4c1b0cd.
 
 ## Newly Added Lemmas
 

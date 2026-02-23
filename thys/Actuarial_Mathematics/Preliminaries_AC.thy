@@ -2943,7 +2943,7 @@ proof -
   also have "\<dots> = 0" by (rule tendsto_Lim; simp)
   finally show ?thesis .
 qed
-declare [[show_types]]
+
 lemma hazard_rate_deriv_cdf:
   assumes [measurable]: "random_variable borel X"
     and "(cdf (distr M borel X)) differentiable at t"
@@ -2977,7 +2977,7 @@ next
 qed
 
 lemma deriv_cdf_hazard_rate:
-  assumes [measurable]: "random_variable borel X"
+  assumes Xrv: "random_variable borel X"
     and "(cdf (distr M borel X)) differentiable at t"
   shows "deriv (cdf (distr M borel X)) t = ccdf (distr M borel X) t * hazard_rate X t"
 proof -
@@ -2988,7 +2988,7 @@ proof -
     case True
     hence "cdf (distr M borel X) t = 1"
       using distrX_FBM.cdf_ccdf
-      by (metis assms(1) diff_0_right prob_space.prob_space prob_space_distr)
+      by (metis Xrv diff_0_right prob_space.prob_space prob_space_distr)
     moreover obtain D where "(cdf (distr M borel X) has_real_derivative D) (at t)"
       using assms real_differentiable_def by blast
     ultimately have "(cdf (distr M borel X) has_real_derivative 0) (at t)"

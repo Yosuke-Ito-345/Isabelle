@@ -2716,7 +2716,7 @@ lemma integral_cond_prob_space_nn:
   shows "integral\<^sup>L (M\<downharpoonright>A) X = expectation (\<lambda>x. indicator A x * X x) / prob A"
 proof -
   have [measurable]: "X \<in> borel_measurable (M\<downharpoonright>A)"
-    by (rule random_variable_cond_prob_space; (simp add: assms))
+    by (rule random_variable_cond_prob_space; simp add: assms)
   have [simp]: "AE x in (M\<downharpoonright>A). 0 \<le> X x"
     by (rewrite AE_cond_prob_space_iff; simp add: assms)
   have [measurable]: "random_variable borel (\<lambda>x. indicat_real A x * X x)" 
@@ -2877,13 +2877,16 @@ lemma ccdf_continuous_distr_P_ge:
   assumes "random_variable borel X" "isCont (ccdf (distr M borel X)) x"
   shows "ccdf (distr M borel X) x = \<P>(\<omega> in M. X \<omega> \<ge> x)"
 proof -
-  have "ccdf (distr M borel X) x = measure (distr M borel X) {x<..}" unfolding ccdf_def by simp
-  also have "\<dots> = measure (distr M borel X) ({x<..} \<union> {x})"
-    apply (rewrite finite_measure.measure_zero_union, simp_all add: assms finite_measure_distr)
+  have "ccdf (distr M borel X) x = measure (distr M borel X) {x<..}"
+    unfolding ccdf_def by simp
+  moreover have "Sigma_Algebra.measure (distr M borel X) {x} = 0"
     using finite_borel_measure.isCont_ccdf real_distribution.finite_borel_measure_M assms by blast
-  also have "\<dots> = measure (distr M borel X) {x..}" by (metis Un_commute ivl_disj_un_singleton(1))
-  also have "\<dots> = \<P>(\<omega> in M. X \<omega> \<ge> x)" 
-    apply (rewrite measure_distr, simp_all add: assms)
+  ultimately have "ccdf (distr M borel X) x = measure (distr M borel X) ({x<..} \<union> {x})"
+    by (rewrite finite_measure.measure_zero_union; simp add: assms finite_measure_distr)
+  also have "\<dots> = measure (distr M borel X) {x..}"
+    by (metis Un_commute ivl_disj_un_singleton(1))
+  also have "\<dots> = \<P>(\<omega> in M. X \<omega> \<ge> x)"
+    apply (rewrite measure_distr, (simp_all add: assms)[2])
     unfolding vimage_def by simp (smt (verit) Collect_cong Int_def mem_Collect_eq)
   finally show ?thesis .
 qed

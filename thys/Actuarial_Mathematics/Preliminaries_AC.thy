@@ -2943,7 +2943,7 @@ proof -
   also have "\<dots> = 0" by (rule tendsto_Lim; simp)
   finally show ?thesis .
 qed
-
+declare [[show_types]]
 lemma hazard_rate_deriv_cdf:
   assumes [measurable]: "random_variable borel X"
     and "(cdf (distr M borel X)) differentiable at t"
@@ -2952,26 +2952,26 @@ proof (cases \<open>ccdf (distr M borel X) t = 0\<close>)
   case True
   with hazard_rate_0_ccdf_0 show ?thesis by simp
 next
-  case h:False
+  case False
   let ?F = "cdf (distr M borel X)"
-  have "\<forall>\<^sub>F dt in at_right 0. \<P>(x in M. t < X x \<and> X x \<le> t + dt \<bar> X x > t) / dt =
+  have "\<And>dt. \<P>(x in M. t < X x \<and> X x \<le> t + dt \<bar> X x > t) =
+    \<P>(x in M. t < X x \<and> X x \<le> t + dt) / \<P>(x in M. t < X x)"
+    unfolding cond_prob_def by (metis (mono_tags, lifting) Collect_cong)
+  hence "\<forall>\<^sub>F dt in at_right 0. \<P>(x in M. t < X x \<and> X x \<le> t + dt \<bar> X x > t) / dt =
     (?F (t + dt) - ?F t) / dt / ccdf (distr M borel X) t"
-    apply (rule eventually_at_rightI[where b=1]; simp)
-    unfolding cond_prob_def
-    apply (rewrite cdf_distr_diff_P; simp)
-    apply (rewrite ccdf_distr_P[THEN sym], simp)
-    by (smt (verit) Collect_cong mult.commute) (* TODO: fix this proof *)
+    using cdf_distr_diff_P ccdf_distr_P by (intro eventually_at_rightI[where b=1]; simp)
+  moreover have "((\<lambda>dt. (?F (t + dt) - ?F t) / dt) \<longlongrightarrow> deriv ?F t) (at_right 0)"
+    apply (rule Lim_at_imp_Lim_at_within)
+    using DERIV_deriv_iff_real_differentiable assms DERIV_def by blast
   moreover have "((\<lambda>dt. (?F (t + dt) - ?F t) / dt / ccdf (distr M borel X) t) \<longlongrightarrow>
     deriv ?F t / ccdf (distr M borel X) t) (at_right 0)"
-    apply (rule tendsto_intros)
+  proof -
+    have "((\<lambda>dt. (?F (t + dt) - ?F t) / dt) \<longlongrightarrow> deriv ?F t) (at_right 0)"
       apply (rule Lim_at_imp_Lim_at_within)
-    using DERIV_deriv_iff_real_differentiable assms DERIV_def
-      apply blast
-     apply (rule Lim_at_imp_Lim_at_within)
-    using DERIV_deriv_iff_real_differentiable assms DERIV_def
-     apply blast
-    apply fact
-    done
+      using DERIV_deriv_iff_real_differentiable assms DERIV_def by blast
+    thus ?thesis
+      by (rule tendsto_intros; simp add: False)
+  qed
   ultimately show ?thesis
     unfolding hazard_rate_def using tendsto_cong by (intro tendsto_Lim; fastforce)
 qed

@@ -395,6 +395,12 @@ proof -
   thus ?thesis using DERIV_chain2 assms by fastforce
 qed
 
+corollary field_differentiable_at_ln_comp:
+  fixes f :: "real \<Rightarrow> real"
+  assumes "f x > 0" and "f field_differentiable (at x within s)"
+  shows "(\<lambda>x. ln (f x)) field_differentiable (at x within s)"
+  using DERIV_ln_divide_chain assms unfolding field_differentiable_def by force
+
 lemma inverse_fun_has_integral_ln:
   fixes f :: "real \<Rightarrow> real" and f' :: "real \<Rightarrow> real"
   assumes "a \<le> b" and
@@ -3060,76 +3066,60 @@ proof -
   let ?srvl = "ccdf (distr M borel X)"
   have [simp]: "\<And>s. t \<le> s \<and> s \<le> u \<Longrightarrow> ?srvl s > 0"
     using distrX_FBM.ccdf_nonneg assms by (smt (verit) atLeastAtMost_iff)
+  from assms obtain S0 where S0_fin: "finite S0" and
+    diff_S0: "\<And>s. s \<in> {t<..<u} - S0 \<Longrightarrow> ?srvl differentiable at s within {t<..<u}"
+    unfolding piecewise_differentiable_on_def by blast
+  obtain S where
+    S_fin: "finite S" and diff_S: "\<And>s. s \<in> {t..u} - S \<Longrightarrow> ?srvl differentiable at s"
+  proof (atomize_elim)
+    let ?S = "S0 \<union> {t, u}"
+    have "finite ?S" using S0_fin by simp
+    moreover have "\<forall>s. s \<in> {t..u} - ?S \<longrightarrow> ?srvl differentiable at s"
+    proof -
+      { fix s assume s_in: "s \<in> {t..u} - ?S"
+        hence "?srvl differentiable at s within {t<..<u}" using diff_S0 by simp
+        hence "?srvl differentiable at s"
+          using s_in by (rewrite at_within_open[THEN sym]; simp) }
+      thus ?thesis by blast
+    qed
+    ultimately show "\<exists>S. finite S \<and> (\<forall>s. s \<in> {t..u} - S \<longrightarrow> ?srvl differentiable at s)"
+      by blast
+  qed
+  hence ln_srvl_diff: "\<And>s. s \<in> {t..u} - S \<Longrightarrow> (\<lambda>r. ln (?srvl r)) differentiable at s"
+    apply (rewrite differentiable_eq_field_differentiable_real)
+    using assms differentiable_eq_field_differentiable_real
+    by (intro field_differentiable_at_ln_comp; simp)
   have "(deriv (\<lambda>s. - ln (?srvl s)) has_integral - ln (?srvl u) - - ln (?srvl t)) {t..u}"
   proof -
-    have "continuous_on {t..u} (\<lambda>s. - ln (?srvl s))"
+    have C0: "continuous_on {t..u} (\<lambda>s. - ln (?srvl s))"
       by (intro continuous_intros continuous_on_ln) (auto simp add: assms)
-    moreover hence "(\<lambda>s. - ln (?srvl s)) piecewise_differentiable_on {t<..<u}"
+    moreover have "(\<lambda>s. - ln (?srvl s)) piecewise_differentiable_on {t<..<u}"
     proof -
-      have "?srvl ` {t<..<u} \<subseteq> {0<..}"
-      proof -
-        { fix s assume "s \<in> {t<..<u}"
-          hence "?srvl s \<noteq> 0" using assms by simp
-          moreover have "?srvl s \<ge> 0" using distrX_FBM.ccdf_nonneg by simp
-          ultimately have "?srvl s > 0" by simp }
-        thus ?thesis by auto
-      qed
-      hence "(\<lambda>r. - ln r) \<circ> ?srvl piecewise_differentiable_on {t<..<u}"
-        apply (intro differentiable_on_piecewise_compose)
-         apply(simp add: assms)
-        apply (rule derivative_intros)
-        apply (rule differentiable_on_subset[of ln "{0<..}"])
-         apply (rewrite differentiable_on_eq_field_differentiable_real)
-        unfolding field_differentiable_def using DERIV_ln
-        by (meson greaterThan_iff has_field_derivative_at_within) simp
-      thus ?thesis unfolding comp_def by simp
+      have "\<And>r. r \<in> {t<..<u} - S \<Longrightarrow> (\<lambda>s. - ln (?srvl s)) differentiable at r within {t<..<u}"
+        using ln_srvl_diff by (intro derivative_intros; simp add: differentiable_at_withinI)
+      thus ?thesis
+        unfolding piecewise_differentiable_on_def apply safe
+         apply (rule continuous_on_subset[of "{t..u}"]; force simp add: C0)
+        using S_fin by blast
     qed
-    ultimately show ?thesis by (intro FTC_real_deriv_has_integral; simp add: assms)
+    ultimately show ?thesis
+      by (intro FTC_real_deriv_has_integral; simp add: assms)
   qed
-  hence ln: "(deriv (\<lambda>s. - ln (?srvl s)) has_integral ln (?srvl t / ?srvl u)) {t..u}"
+  hence "(deriv (\<lambda>s. - ln (?srvl s)) has_integral ln (?srvl t / ?srvl u)) {t..u}"
     by (rewrite ln_div; force simp: assms)
-  thus "((hazard_rate X) has_integral ln (?srvl t / ?srvl u)) {t..u}"
+  moreover have "\<And>r. r \<in> {t..u} - S \<Longrightarrow> deriv (\<lambda>s. - ln (?srvl s)) r = hazard_rate X r"
   proof -
-    from assms obtain S0 where finS0: "finite S0" and
-      diffS0: "\<And>s. s \<in> {t<..<u} - S0 \<Longrightarrow> ?srvl differentiable at s within {t<..<u}"
-      unfolding piecewise_differentiable_on_def by blast
-    from this obtain S where "finite S" and "\<And>s. s \<in> {t..u} - S \<Longrightarrow> ?srvl differentiable at s"
-    proof (atomize_elim)
-      let ?S = "S0 \<union> {t, u}"
-      have "finite ?S" using finS0 by simp
-      moreover have "\<forall>s. s \<in> {t..u} - ?S \<longrightarrow> ccdf (distr M borel X) differentiable at s"
-      proof -
-        { fix s assume s_in: "s \<in> {t..u} - ?S"
-          hence "?srvl differentiable at s within {t<..<u}" using diffS0 by simp
-          hence "?srvl differentiable at s"
-            using s_in by (rewrite at_within_open[THEN sym], simp_all) }
-        thus ?thesis by blast
-      qed
-      ultimately show
-        "\<exists>S. finite S \<and> (\<forall>s. s \<in> {t..u} - S \<longrightarrow> ccdf (distr M borel X) differentiable at s)"
-        by blast
-    qed
-    thus ?thesis
-      apply (rewrite has_integral_spike_finite_eq [of S _ "deriv (\<lambda>s. - ln (?srvl s))"])
-        apply simp
-       apply (rewrite hazard_rate_deriv_ln_ccdf)
-          apply simp
-         apply(simp add: assms)
-        apply(simp add: assms)
-       apply (rewrite deriv_minus)
-        apply (rewrite in asm differentiable_eq_field_differentiable_real)
-        apply (rewrite comp_def[THEN sym])
-        apply(rule field_differentiable_compose[of "?srvl"])
-         apply simp
-      unfolding field_differentiable_def
-        apply (rule exI)
-        apply(rule DERIV_ln)
-        apply simp
-       apply simp
-      using ln
-      apply simp
-      done
+    fix r assume r_in : "r \<in> {t..u} - S"
+    hence "ln differentiable at (?srvl r)"
+      using assms
+      by (smt (verit) DERIV_ln_divide Diff_iff distrX_FBM.ccdf_nonneg real_differentiable_def)
+    hence "deriv (\<lambda>s. - ln (?srvl s)) r = - deriv (\<lambda>s. ln (?srvl s)) r"
+      using ln_srvl_diff r_in differentiable_eq_field_differentiable_real deriv_minus by simp
+    thus "deriv (\<lambda>s. - ln (?srvl s)) r = hazard_rate X r"
+      using assms r_in diff_S by (rewrite hazard_rate_deriv_ln_ccdf; simp)
   qed
+  ultimately show "((hazard_rate X) has_integral ln (?srvl t / ?srvl u)) {t..u}"
+    by (rewrite has_integral_spike_finite_eq [of S _ "deriv (\<lambda>s. - ln (?srvl s))"]; simp add: S_fin)
 qed
 
 corollary hazard_rate_integrable:

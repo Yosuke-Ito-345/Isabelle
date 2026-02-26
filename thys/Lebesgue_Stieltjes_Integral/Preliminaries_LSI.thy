@@ -387,4 +387,34 @@ proof -
   ultimately show ?thesis by simp
 qed
 
+lemma set_nn_integral_interval_measure_bounded_finite:
+  fixes F :: "real \<Rightarrow> real" and h :: "real \<Rightarrow> ennreal" and A :: "real set" and M::real
+  assumes "bounded A" "\<And>x. x \<in> A \<Longrightarrow> h x \<le> M" "A \<in> sets borel" and
+    "mono F" "\<And>x. continuous (at_right x) F"
+  shows "(\<integral>\<^sup>+x\<in>A. h x \<partial>(interval_measure F)) < \<infinity>"
+proof -
+  let ?IMF = "interval_measure F"
+  obtain a where a_ub: "\<And>x. x \<in> A \<Longrightarrow> \<bar>x\<bar> \<le> a"
+    using bounded_iff assms by force
+  define c where "c \<equiv> \<bar>a\<bar> + 1"
+  have [simp]: "c > 0"
+    unfolding c_def by auto
+  have Ac: "A \<subseteq> {-c<..c}"
+    using a_ub c_def by force
+  have "(\<integral>\<^sup>+x\<in>A. h x \<partial>?IMF) \<le> (\<integral>\<^sup>+x\<in>A. M \<partial>?IMF)"
+    using nn_set_integral_mono assms by (simp add: indicator_def nn_integral_mono)
+  also have "\<dots> \<le> (\<integral>\<^sup>+x\<in>{-c<..c}. M \<partial>?IMF)"
+    using nn_set_integral_set_mono Ac by force
+  also have "\<dots> = M * emeasure ?IMF {-c<..c}"
+    by (rewrite nn_integral_cmult_indicator; simp)
+  also have "\<dots> \<le> \<bar>M\<bar> * emeasure ?IMF {-c<..c}"
+    using abs_ge_self by (simp add: mult_right_mono)
+  also have "emeasure ?IMF {-c<..c} = F c - F (-c)"
+    by (simp add: emeasure_interval_measure_Ioc_eq ennreal_eq_0_iff monoD assms)
+  finally have "(\<integral>\<^sup>+x\<in>A. h x \<partial>?IMF) \<le> \<bar>M\<bar> * (F c - F (-c))"
+    by (simp add: ennreal_mult')
+  then show ?thesis
+    by (simp add: le_less_trans)
+qed
+
 end

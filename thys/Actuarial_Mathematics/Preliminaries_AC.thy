@@ -3162,7 +3162,7 @@ proof (cases \<open>ccdf (distr M borel X) t = 0\<close>)
   thus ?thesis
     using assms
     by (rewrite hazard_rate_0_ccdf_0)
-       (auto dest: distributed_measurable)
+      (auto dest: distributed_measurable)
 next
   case False
   have [simp]: "t \<le> u" using assms by simp
@@ -3222,19 +3222,16 @@ next
     ultimately show "\<P>(x in M. X x \<in> {t <.. t+dt}) = (LBINT s:{t..t+dt}. f s)" by simp
   qed
   ultimately have "((\<lambda>dt. \<P>(x in M. t < X x \<and> X x \<le> t + dt) / dt) \<longlongrightarrow> f t) (at_right 0)"
-    by(auto intro!: Lim_cong_within
-       [where f="\<lambda>dt. \<P>(x in M. t < X x \<and> X x \<le> t + dt) / dt"
+    by (auto intro!: Lim_cong_within
+        [where f="\<lambda>dt. \<P>(x in M. t < X x \<and> X x \<le> t + dt) / dt"
           and g="\<lambda>dt. (LBINT s:{t..t+dt}. f s) / dt",THEN iffD2])
   hence "((\<lambda>dt. \<P>(x in M. t < X x \<and> X x \<le> t + dt \<bar> X x > t) / dt) \<longlongrightarrow>
     f t / ccdf (distr M borel X) t) (at_right 0)"
-    unfolding cond_prob_def
-    apply (rewrite ccdf_distr_P[THEN sym])
-     apply simp
+    unfolding cond_prob_def apply (rewrite ccdf_distr_P[THEN sym], simp)
     unfolding conj.assoc divide_divide_eq_left
-    apply (rewrite mult.commute)
-    apply(rewrite divide_divide_eq_left[THEN sym])
+    apply (rewrite mult.commute, rewrite divide_divide_eq_left[THEN sym])
     apply(rule tendsto_intros)
-    by(auto intro!: Lim_cong_within
+    by (auto intro!: Lim_cong_within
         [where f="\<lambda>x. prob {\<omega> \<in> space M. t < X \<omega> \<and> X \<omega> \<le> t + x \<and> t < X \<omega>} / x"
           and g="\<lambda>dt. prob {x \<in> space M. t < X x \<and> X x \<le> t + dt} / dt", THEN iffD2]
         arg_cong[where f=prob] False)

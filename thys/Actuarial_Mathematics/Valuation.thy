@@ -67,6 +67,10 @@ end
 
 section \<open>Valuation\<close>
 
+subsection \<open>Actuarial Present Value\<close>
+
+subsubsection \<open>Framework\<close>
+
 text \<open>
   In this theory, I describe various kinds of life insurance benefits and annuities in a uniform way.
   This allows us to generally define the actuarial present values of life contingencies.
@@ -174,7 +178,7 @@ qed
 
 end
 
-subsection \<open>Term Life\<close>
+subsubsection \<open>Term Life\<close>
 
 locale val_term_life = val +
   fixes n::real
@@ -189,7 +193,7 @@ lemma ab_constant_on_fn:
 
 end
 
-subsection \<open>Life Annuity\<close>
+subsubsection \<open>Life Annuity\<close>
 
 locale val_life_ann = actuarial_model + annuity
 begin
@@ -457,7 +461,7 @@ qed
 
 end
 
-subsection \<open>Term Life Annuity\<close>
+subsubsection \<open>Term Life Annuity\<close>
 
 locale val_term_life_ann = val_life_ann + term_annuity
 begin 
@@ -522,7 +526,7 @@ qed
 
 end
 
-subsection \<open>Deferred Continuous Whole Life Annuity\<close>
+subsubsection \<open>Deferred Continuous Whole Life Annuity\<close>
 
 locale val_defer_cont_whole_life_ann = actuarial_model + defer_cont_perp_ann
 
@@ -584,7 +588,7 @@ qed
 
 end
 
-subsection \<open>Deferred Continuous Term Life Annuity\<close>
+subsubsection \<open>Deferred Continuous Term Life Annuity\<close>
 
 locale val_defer_cont_term_life_ann = actuarial_model + defer_cont_term_ann
 
@@ -648,6 +652,14 @@ proof -
 qed
 
 end
+
+subsubsection \<open>Deferred Pure Endowment\<close>
+
+locale val_defer_pure_endow = actuarial_model (* work in progress *)
+begin
+end
+
+subsection \<open>Actuarial Notation\<close>
 
 context actuarial_model
 begin

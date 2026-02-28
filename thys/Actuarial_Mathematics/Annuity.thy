@@ -313,6 +313,9 @@ proof -
 
 qed
 
+lemma ennPV_calc: "ennPV = (\<integral>\<^sup>+t\<in>{f..}. $v.^t \<partial>lborel)"
+  using ennPV_abg_f set_nn_integral_interval_measure_abg by simp
+
 lemma
   assumes "i > 0"
   shows PV_set_integrable: "set_integrable lborel {f..} (\<lambda>t. $v.^t)" and
@@ -324,10 +327,8 @@ proof -
     using assms set_integrable_powr_Ici v_lt_1_iff_i_pos v_pos by presburger
 
   text \<open>Proof of "PV_calc"\<close>
-  have "ennPV = (\<integral>\<^sup>+t\<in>{f..}. $v.^t \<partial>(IM abg))"
-    by (rewrite ennPV_abg_f; simp)
-  also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..}. $v.^t \<partial>lborel)"
-    by (rewrite set_nn_integral_interval_measure_abg; simp)
+  have "ennPV = (\<integral>\<^sup>+t\<in>{f..}. $v.^t \<partial>lborel)"
+    using ennPV_calc by simp
   also have "\<dots> = ennreal (LBINT t:{f..}. $v.^t)"
     by (rule set_nn_integral_eq_set_integral; simp add: PV_nonneg PV_set_integrable)
   finally have "ennPV = ennreal (LBINT t:{f..}. $v.^t)" .

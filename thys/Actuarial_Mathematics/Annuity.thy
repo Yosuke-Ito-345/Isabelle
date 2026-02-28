@@ -447,6 +447,15 @@ proof -
   qed
 qed
 
+lemma ennPV_calc: "ennPV = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t \<partial>lborel)"
+proof -
+  have "ennPV = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
+    by (rewrite ennPV_abg_f_fn; simp)
+  also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t \<partial>lborel)"
+    by (rewrite set_nn_integral_interval_measure_abg; simp)
+  finally show ?thesis .
+qed
+
 lemma
   PV_set_integrable: "set_integrable lborel {f..f+n} (\<lambda>t. $v.^t)" and
   PV_calc: "PV = (LBINT t:{f..f+n}. $v.^t)"
@@ -457,14 +466,11 @@ proof -
     using set_integrable_powr_Icc v_pos by simp
 
   text \<open>Proof of "PV_calc"\<close>
-  have "ennPV = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
-    by (rewrite ennPV_abg_f_fn; simp)
-  also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t \<partial>lborel)"
-    by (rewrite set_nn_integral_interval_measure_abg; simp)
-  also have "\<dots> = ennreal (LBINT t:{f..f+n}. $v.^t)"
+  have "ennPV = ennreal (LBINT t:{f..f+n}. $v.^t)"
+    apply (rewrite ennPV_calc)
     by (rule set_nn_integral_eq_set_integral; simp add: PV_nonneg PV_set_integrable)
-  finally have "ennPV = ennreal (LBINT t:{f..f+n}. $v.^t)" .
-  thus "PV = (LBINT t:{f..f+n}. $v.^t)" using ennreal_inj ennPV_PV PV_nonneg by simp
+  thus "PV = (LBINT t:{f..f+n}. $v.^t)"
+    using ennreal_inj ennPV_PV PV_nonneg by simp
 
 qed
 

@@ -178,6 +178,41 @@ end
 sublocale unit_payment \<subseteq> term_annuity i f abg n
   by (standard; simp add: abg_fn_1)
 
+context unit_payment
+begin
+
+lemma emeasure_fn_interval_measure_abg: "emeasure (IM abg) {f + n} = 1"
+proof -
+  have "(abg \<longlongrightarrow> 0) (at_left (f + n))"
+    by (metis Lim_cong_within abg_fn_0 lessThan_iff tendsto_const)
+  hence "Lim (at_left (f + n)) abg = 0"
+    by (intro tendsto_Lim; simp)
+  thus ?thesis
+    by (rewrite interval_measure_singleton; simp add: abg_def)
+qed
+
+lemma ennPV_calc: "ennPV = $v.^(f+n)"
+proof -
+  have [simp]: "{..f+n} = {..<f+n} \<union> {f+n}"
+    by force
+  have "ennPV = (\<integral>\<^sup>+t\<in>{..f+n}. $v.^t \<partial>(IM abg))"
+    using ennPV_abg_fn by simp
+  also have "\<dots> = (\<integral>\<^sup>+t\<in>{..<f+n}. $v.^t \<partial>(IM abg)) + (\<integral>\<^sup>+t\<in>{f+n}. $v.^t \<partial>(IM abg))"
+    by (rewrite nn_integral_disjoint_pair[THEN sym]; simp)
+  moreover have "(\<integral>\<^sup>+t\<in>{..<f+n}. $v.^t \<partial>(IM abg)) = 0"
+    by (rewrite Iio_nn_integral_interval_measure_cong[where G="\<lambda>_. 0"];
+        simp add: interval_measure_const_null constant_on_def)
+  moreover have "(\<integral>\<^sup>+t\<in>{f+n}. $v.^t \<partial>(IM abg)) = $v.^(f+n)"
+    using emeasure_fn_interval_measure_abg by simp
+  ultimately show ?thesis
+    by simp
+qed
+
+corollary PV_calc: "PV = $v.^(f+n)"
+  using ennPV_calc PV_nonneg ennPV_PV by auto
+
+end
+
 subsubsection \<open>Deferred Continuous Perpetual Annuity\<close>
 
 locale defer_cont_perp_ann = interest +

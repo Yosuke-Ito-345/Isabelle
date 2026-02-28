@@ -327,12 +327,11 @@ proof -
     using assms set_integrable_powr_Ici v_lt_1_iff_i_pos v_pos by presburger
 
   text \<open>Proof of "PV_calc"\<close>
-  have "ennPV = (\<integral>\<^sup>+t\<in>{f..}. $v.^t \<partial>lborel)"
-    using ennPV_calc by simp
-  also have "\<dots> = ennreal (LBINT t:{f..}. $v.^t)"
+  have "ennPV = ennreal (LBINT t:{f..}. $v.^t)"
+    apply (rewrite ennPV_calc)
     by (rule set_nn_integral_eq_set_integral; simp add: PV_nonneg PV_set_integrable)
-  finally have "ennPV = ennreal (LBINT t:{f..}. $v.^t)" .
-  thus "PV = (LBINT t:{f..}. $v.^t)" using ennreal_inj ennPV_PV PV_nonneg by simp
+  thus "PV = (LBINT t:{f..}. $v.^t)"
+    using ennreal_inj ennPV_PV PV_nonneg by simp
 
 qed
 

@@ -123,6 +123,61 @@ qed
 
 end
 
+subsubsection \<open>Unit Payment\<close>
+
+locale unit_payment = interest +
+  fixes f n :: real
+  assumes f_nonneg[simp]: "f \<ge> 0" and
+    n_nonneg[simp]: "n \<ge> 0"
+begin
+
+definition abg :: "real \<Rightarrow> real" where "abg t \<equiv> indicator {f+n..} t"
+
+lemma abg_fn_0[simp]:
+  fixes t::real
+  assumes "t < f + n"
+  shows "abg t = 0"
+  unfolding abg_def using assms by simp
+
+corollary abg_f_0[simp]:
+  fixes t::real
+  assumes "t < f"
+  shows "abg t = 0"
+  using assms abg_fn_0 by (smt (verit) n_nonneg)
+
+lemma abg_fn_1:
+  fixes t::real
+  assumes "f + n \<le> t"
+  shows "abg t = 1"
+  unfolding abg_def using assms by simp
+
+lemma abg_right_continuous[simp]:
+  fixes t::real
+  shows "continuous (at_right t) abg"
+proof (cases \<open>t < f + n\<close>)
+  case True
+  hence "\<forall>\<^sub>F s in at_right t. abg s = 0"
+    by (intro eventually_at_rightI[of t "f+n"]; simp)
+  with True show ?thesis
+    by (rewrite continuous_at_within_cong[where g="\<lambda>_.0"]; simp)
+next
+  case False
+  hence "\<forall>\<^sub>F s in at_right t. abg s = 1"
+    using abg_fn_1 by (intro eventually_at_rightI[of t "t+1"]; simp)
+  with False show ?thesis
+    using abg_fn_1 by (rewrite continuous_at_within_cong[where g="\<lambda>_.1"]; simp)
+qed
+
+lemma abg_mono[simp]: "mono abg"
+  unfolding abg_def using abg_fn_0 abg_fn_1
+  by (metis (no_types, lifting) abg_def basic_trans_rules(23) dual_order.refl
+      indicator_pos_le monoI verit_comp_simplify(3))
+
+end
+
+sublocale unit_payment \<subseteq> term_annuity i f abg n
+  by (standard; simp add: abg_fn_1)
+
 subsubsection \<open>Deferred Continuous Perpetual Annuity\<close>
 
 locale defer_cont_perp_ann = interest +

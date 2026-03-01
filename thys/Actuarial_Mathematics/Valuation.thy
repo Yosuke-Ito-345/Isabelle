@@ -19,7 +19,7 @@ interpretation alivex_PS: prob_space "\<MM> \<downharpoonright> alive x"
 
 interpretation distrTx_RD: real_distribution "distr (\<MM> \<downharpoonright> alive x) borel (T x)" by simp
 
-(* delete if this is used only for proving lemma ennAPV_vp_abg *)
+(* delete if this is used only for proving lemma ennAPV_vp_abg_f *)
 lemma nn_integral_toTx_p:
   fixes \<BB> :: "real measure"
   assumes "sets \<BB> = sets borel" "sigma_finite_measure \<BB>" "g \<in> borel_measurable \<BB>"
@@ -431,7 +431,7 @@ proof -
 
 qed
 
-lemma ennAPV_vp_abg:
+lemma ennAPV_vp_abg_f:
   assumes "x < $\<psi>"
   shows "ennAPV x = (\<integral>\<^sup>+t\<in>{f..}. $v.^t * $p_{t&x} \<partial>(IM abg))"
     (is "?LHS = ?RHS")
@@ -507,14 +507,14 @@ sublocale val_term_life_ann \<subseteq> val_term_life i l f ab tp n
 context val_term_life_ann
 begin
 
-lemma ennAPV_vp_abg_term:
+lemma ennAPV_vp_abg_f_fn:
   assumes "x < $\<psi>"
   shows "ennAPV x = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t * $p_{t&x} \<partial>(IM abg))"
 proof -
   have[simp]: "abg constant_on {f+n<..}"
     using abg_constant_on_fn by (meson Ioi_le_Ico constant_on_subset)
   have "ennAPV x = (\<integral>\<^sup>+t. ennreal ($v.^t * $p_{t&x}) * indicator {f..} t \<partial>(IM abg))"
-    using ennAPV_vp_abg assms by simp
+    using ennAPV_vp_abg_f assms by simp
   also have "\<dots> = (\<integral>\<^sup>+t\<in>{..f+n}. ennreal ($v.^t * $p_{t&x}) * indicator {f..} t \<partial>(IM abg))"
     using assms by (rewrite nn_integral_interval_measure_Iic; simp)
   also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..f+n}. ennreal ($v.^t * $p_{t&x}) \<partial>(IM abg))"
@@ -542,7 +542,7 @@ lemma ennAPV_calc:
   shows "ennAPV x = (\<integral>\<^sup>+t\<in>{f..}. $v.^t * $p_{t&x} \<partial>lborel)"
 proof -
   have "ennAPV x = (\<integral>\<^sup>+t\<in>{f..}. $v.^t * $p_{t&x} \<partial>(IM abg))"
-    by (rule ennAPV_vp_abg, simp add: assms)
+    by (rule ennAPV_vp_abg_f, simp add: assms)
   also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..}. $v.^t * $p_{t&x} \<partial>lborel)"
     by (rule set_nn_integral_interval_measure_abg; simp add: assms)
   finally show ?thesis .
@@ -604,7 +604,7 @@ lemma ennAPV_calc:
   shows "ennAPV x = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t * $p_{t&x} \<partial>lborel)"
 proof -
   have "ennAPV x = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t * $p_{t&x} \<partial>(IM abg))"
-    by (rule ennAPV_vp_abg_term, simp add: assms)
+    by (rule ennAPV_vp_abg_f_fn, simp add: assms)
   also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t * $p_{t&x} \<partial>lborel)"
     by (rule set_nn_integral_interval_measure_abg; simp add: assms)
   finally show ?thesis .

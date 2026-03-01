@@ -507,7 +507,7 @@ sublocale val_term_life_ann \<subseteq> val_term_life i l f ab tp n
 context val_term_life_ann
 begin
 
-lemma ennAPV_term_nn_integral_interval_measure_abg:
+lemma ennAPV_vp_abg_term:
   assumes "x < $\<psi>"
   shows "ennAPV x = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t * $p_{t&x} \<partial>(IM abg))"
 proof -
@@ -604,7 +604,7 @@ lemma ennAPV_calc:
   shows "ennAPV x = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t * $p_{t&x} \<partial>lborel)"
 proof -
   have "ennAPV x = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t * $p_{t&x} \<partial>(IM abg))"
-    by (rule ennAPV_term_nn_integral_interval_measure_abg, simp add: assms)
+    by (rule ennAPV_vp_abg_term, simp add: assms)
   also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t * $p_{t&x} \<partial>lborel)"
     by (rule set_nn_integral_interval_measure_abg; simp add: assms)
   finally show ?thesis .

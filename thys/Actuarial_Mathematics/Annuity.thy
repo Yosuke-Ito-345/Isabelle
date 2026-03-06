@@ -132,6 +132,9 @@ locale unit_payment = interest +
 begin
 
 definition abg :: "real \<Rightarrow> real" where "abg t \<equiv> indicator {f+n..} t"
+\<comment> \<open>In practice, "abg" can be defined with only one variable \<open>n\<close>: "abg t \<equiv> indicator {n..} t".
+  However, I deliberately keep the variable \<open>f\<close> here
+  to maintain consistency with other types of annuities.\<close>
 
 lemma abg_fn_0[simp]:
   fixes t::real

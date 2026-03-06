@@ -561,7 +561,8 @@ proof -
     using assms by measurable
   have "ennAPV x = (\<integral>\<^sup>+t\<in>{..f+n}. $v.^t * $p_{t&x} \<partial>(IM abg))"
     using ennAPV_vp_abg_fn assms by simp
-  also have "\<dots> = (\<integral>\<^sup>+t\<in>{..<f+n}. $v.^t * $p_{t&x} \<partial>(IM abg)) + (\<integral>\<^sup>+t\<in>{f+n}. $v.^t * $p_{t&x} \<partial>(IM abg))"
+  also have "\<dots> =
+    (\<integral>\<^sup>+t\<in>{..<f+n}. $v.^t * $p_{t&x} \<partial>(IM abg)) + (\<integral>\<^sup>+t\<in>{f+n}. $v.^t * $p_{t&x} \<partial>(IM abg))"
     using assms by (rewrite nn_integral_disjoint_pair[THEN sym]; simp)
   moreover have "(\<integral>\<^sup>+t\<in>{..<f+n}. $v.^t * $p_{t&x} \<partial>(IM abg)) = 0"
     by (rewrite Iio_nn_integral_interval_measure_cong[where G="\<lambda>_. 0"];
@@ -571,6 +572,19 @@ proof -
   ultimately show ?thesis
     by simp
 qed
+
+corollary ennAPV_fin:
+  fixes x::real
+  assumes "x < $\<psi>"
+  shows "ennAPV x < \<infinity>"
+  using ennAPV_calc assms by simp
+
+corollary APV_calc:
+  fixes x::real
+  assumes "x < $\<psi>"
+  shows "APV x = $v.^(f+n) * $p_{f+n&x}"
+  using assms ennAPV_calc ennAPV_fin ennPVs_fin ennAPV_APV APV_nonneg
+  by (metis enn2real_ennreal mult_nonneg_nonneg p_nonneg powr_ge_zero)
 
 end
 

@@ -19,7 +19,7 @@ interpretation alivex_PS: prob_space "\<MM> \<downharpoonright> alive x"
 
 interpretation distrTx_RD: real_distribution "distr (\<MM> \<downharpoonright> alive x) borel (T x)" by simp
 
-(* delete if this is used only for proving lemma ennAPV_vp_abg_f *)
+(* delete if this is used only for proving lemma ennAPV_vp_abg *)
 lemma nn_integral_toTx_p:
   fixes \<BB> :: "real measure"
   assumes "sets \<BB> = sets borel" "sigma_finite_measure \<BB>" "g \<in> borel_measurable \<BB>"
@@ -431,10 +431,9 @@ proof -
 
 qed
 
-lemma ennAPV_vp_abg_f:
+lemma ennAPV_vp_abg:
   assumes "x < $\<psi>"
-  shows "ennAPV x = (\<integral>\<^sup>+t\<in>{f..}. $v.^t * $p_{t&x} \<partial>(IM abg))"
-    (is "?LHS = ?RHS")
+  shows "ennAPV x = (\<integral>\<^sup>+t. $v.^t * $p_{t&x} \<partial>(IM abg))"
 proof -
   { fix \<xi> assume "\<xi> \<in> space (\<MM> \<downharpoonright> alive x)"
     have "ab (T x \<xi>) constant_on {T x \<xi> <..}"
@@ -449,15 +448,19 @@ proof -
     finally have
       "(\<integral>\<^sup>+t. ennreal ($v.^(tp (T x \<xi>) t)) \<partial>(IM (ab (T x \<xi>)))) =
         (\<integral>\<^sup>+t\<in>{..< T x \<xi>}. ennreal ($v.^t) \<partial>(IM abg))" . }
-  hence "?LHS = \<integral>\<^sup>+\<xi>. (\<integral>\<^sup>+t\<in>{..< T x \<xi>}. ennreal ($v.^t) \<partial>(IM abg)) \<partial>(\<MM> \<downharpoonright> alive x)"
+  hence "ennAPV x = \<integral>\<^sup>+\<xi>. (\<integral>\<^sup>+t\<in>{..< T x \<xi>}. ennreal ($v.^t) \<partial>(IM abg)) \<partial>(\<MM> \<downharpoonright> alive x)"
     unfolding ennAPV_def by (meson nn_integral_cong)
   also have "\<dots> = (\<integral>\<^sup>+t. $v.^t * $p_{t&x} \<partial>(IM abg))"
     using assms
     by (rewrite nn_integral_toTx_p; simp add: sigma_finite_interval_measure monoD ennreal_mult')
-  also have "\<dots> = ?RHS"
-    by (rewrite nn_integral_interval_measure_Ici; simp add: fun_diff_def constant_on_def assms)
   finally show ?thesis .
 qed
+
+corollary ennAPV_vp_abg_f:
+  assumes "x < $\<psi>"
+  shows "ennAPV x = (\<integral>\<^sup>+t\<in>{f..}. $v.^t * $p_{t&x} \<partial>(IM abg))"
+  apply (rewrite ennAPV_vp_abg, simp add: assms)
+  by (rewrite nn_integral_interval_measure_Ici; simp add: fun_diff_def constant_on_def assms)
 
 end
 
@@ -507,11 +510,22 @@ sublocale val_term_life_ann \<subseteq> val_term_life i l f ab tp n
 context val_term_life_ann
 begin
 
+lemma ennAPV_vp_abg_fn:
+  assumes "x < $\<psi>"
+  shows "ennAPV x = (\<integral>\<^sup>+t\<in>{..f+n}. $v.^t * $p_{t&x} \<partial>(IM abg))"
+proof -
+  have "abg constant_on {f+n<..}"
+    using abg_constant_on_fn by (meson Ioi_le_Ico constant_on_subset)
+  thus "ennAPV x = (\<integral>\<^sup>+t\<in>{..f+n}. $v.^t * $p_{t&x} \<partial>(IM abg))"
+    apply (rewrite ennAPV_vp_abg, simp add: assms)
+    by (rewrite nn_integral_interval_measure_Iic; simp add: assms)
+qed
+
 lemma ennAPV_vp_abg_f_fn:
   assumes "x < $\<psi>"
   shows "ennAPV x = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t * $p_{t&x} \<partial>(IM abg))"
 proof -
-  have[simp]: "abg constant_on {f+n<..}"
+  have [simp]: "abg constant_on {f+n<..}"
     using abg_constant_on_fn by (meson Ioi_le_Ico constant_on_subset)
   have "ennAPV x = (\<integral>\<^sup>+t. ennreal ($v.^t * $p_{t&x}) * indicator {f..} t \<partial>(IM abg))"
     using ennAPV_vp_abg_f assms by simp
@@ -522,6 +536,40 @@ proof -
     by (metis mult_1_right atLeastAtMost_iff atLeast_iff
         atMost_iff ennreal_mult_right_cong indicator_simps)
   finally show ?thesis .
+qed
+
+end
+
+subsubsection \<open>Deferred Pure Endowment\<close>
+
+locale val_defer_pure_endow = actuarial_model + unit_payment
+
+sublocale val_defer_pure_endow \<subseteq> val_term_life_ann i l f abg
+  by standard
+
+context val_defer_pure_endow
+begin
+
+lemma ennAPV_calc: 
+  fixes x::real
+  assumes "x < $\<psi>"
+  shows "ennAPV x = $v.^(f+n) * $p_{f+n&x}"
+proof -
+  have [simp]: "{..f+n} = {..<f+n} \<union> {f+n}"
+    by force
+  have [simp]: "(\<lambda>t. ennreal ($v.^t * $p_{t&x})) \<in> borel_measurable borel"
+    using assms by measurable
+  have "ennAPV x = (\<integral>\<^sup>+t\<in>{..f+n}. $v.^t * $p_{t&x} \<partial>(IM abg))"
+    using ennAPV_vp_abg_fn assms by simp
+  also have "\<dots> = (\<integral>\<^sup>+t\<in>{..<f+n}. $v.^t * $p_{t&x} \<partial>(IM abg)) + (\<integral>\<^sup>+t\<in>{f+n}. $v.^t * $p_{t&x} \<partial>(IM abg))"
+    using assms by (rewrite nn_integral_disjoint_pair[THEN sym]; simp)
+  moreover have "(\<integral>\<^sup>+t\<in>{..<f+n}. $v.^t * $p_{t&x} \<partial>(IM abg)) = 0"
+    by (rewrite Iio_nn_integral_interval_measure_cong[where G="\<lambda>_. 0"];
+        simp add: interval_measure_const_null constant_on_def)
+  moreover have "(\<integral>\<^sup>+t\<in>{f+n}. $v.^t * $p_{t&x} \<partial>(IM abg)) = $v.^(f+n) * $p_{f+n&x}"
+    using emeasure_fn_interval_measure_abg by simp
+  ultimately show ?thesis
+    by simp
 qed
 
 end
@@ -651,12 +699,6 @@ proof -
 
 qed
 
-end
-
-subsubsection \<open>Deferred Pure Endowment\<close>
-
-locale val_defer_pure_endow = actuarial_model (* work in progress *)
-begin
 end
 
 subsection \<open>Actuarial Notation\<close>

@@ -553,17 +553,15 @@ begin
 lemma ennAPV_calc: 
   fixes x::real
   assumes "x < $\<psi>"
-  shows "ennAPV x = $v.^(f+n) * $p_{f+n&x}"
+  shows "ennAPV x = ennreal ($v.^(f+n) * $p_{f+n&x})"
 proof -
-  have [simp]: "{..f+n} = {..<f+n} \<union> {f+n}"
-    by force
   have [simp]: "(\<lambda>t. ennreal ($v.^t * $p_{t&x})) \<in> borel_measurable borel"
     using assms by measurable
   have "ennAPV x = (\<integral>\<^sup>+t\<in>{..f+n}. $v.^t * $p_{t&x} \<partial>(IM abg))"
     using ennAPV_vp_abg_fn assms by simp
   also have "\<dots> =
     (\<integral>\<^sup>+t\<in>{..<f+n}. $v.^t * $p_{t&x} \<partial>(IM abg)) + (\<integral>\<^sup>+t\<in>{f+n}. $v.^t * $p_{t&x} \<partial>(IM abg))"
-    using assms by (rewrite nn_integral_disjoint_pair[THEN sym]; simp)
+    using assms by (rewrite nn_integral_disjoint_pair[THEN sym]; simp flip: ivl_disj_un)
   moreover have "(\<integral>\<^sup>+t\<in>{..<f+n}. $v.^t * $p_{t&x} \<partial>(IM abg)) = 0"
     by (rewrite Iio_nn_integral_interval_measure_cong[where G="\<lambda>_. 0"];
         simp add: interval_measure_const_null constant_on_def)
@@ -648,6 +646,120 @@ proof -
 qed
 
 end
+
+subsubsection \<open>Deferred Continuous Whole Life Insurance\<close>
+
+locale val_defer_cont_whole_life_ins = actuarial_model +
+  fixes f::real
+  assumes f_nonneg[simp]: "f \<ge> 0"
+begin
+
+definition ab :: "real \<Rightarrow> real \<Rightarrow> real" where "ab \<theta> t \<equiv> indicator {f<..} \<theta> * indicator {\<theta>..} t"
+
+definition tp :: "real\<Rightarrow> real \<Rightarrow> real" where "tp \<theta> t \<equiv> t"
+
+lemma ab_le_f_0[simp]:
+  fixes \<theta> t :: real
+  assumes "t \<le> f"
+  shows "ab \<theta> t = 0"
+  unfolding ab_def using assms indicator_eq_0_iff by fastforce
+
+corollary ab_f_0[simp]:
+  fixes \<theta> t :: real
+  assumes "t < f"
+  shows "ab \<theta> t = 0"
+  using ab_le_f_0 assms by simp
+
+lemma ab_th_0[simp]:
+  fixes \<theta> t :: real
+  assumes "t < \<theta>"
+  shows "ab \<theta> t = 0"
+  unfolding ab_def using assms by simp
+
+corollary ab_constant_on_lt_th:
+  fixes \<theta>
+  shows "(ab \<theta>) constant_on {..<\<theta>}"
+  using ab_th_0 by (simp add: constant_on_def)
+
+lemma ab_th_indicator:
+  fixes \<theta> t :: real
+  assumes "\<theta> \<le> t"
+  shows "ab \<theta> t = indicator {f<..} \<theta>"
+  unfolding ab_def using assms by simp
+
+corollary ab_constant_on_gt_th:
+  fixes \<theta>
+  shows "(ab \<theta>) constant_on {\<theta><..}"
+  using ab_th_indicator by (simp add: constant_on_def)
+
+lemma ab_f_th_1:
+  fixes \<theta> t :: real
+  assumes "f < \<theta>" "\<theta> \<le> t"
+  shows "ab \<theta> t = 1"
+  unfolding ab_def using assms by simp
+
+lemma ab_right_continuous[simp]:
+  fixes \<theta> t :: real
+  shows "continuous (at_right t) (ab \<theta>)"
+proof (cases \<open>\<theta> \<le> t\<close>)
+  case True
+  hence "\<forall>\<^sub>F s in at_right t. ab \<theta> s = indicator {f<..} \<theta>"
+    by (metis (mono_tags, lifting) ab_th_indicator eventually_at_right_less eventually_mono
+        landau_o.R_trans less_le)
+  with True show ?thesis
+    by (rewrite continuous_at_within_cong[of _ t "\<lambda>_. indicator {f<..} \<theta>"]; simp add: ab_def)
+next
+  case False
+  moreover have "\<forall>\<^sub>F s in at_right t. ab \<theta> s = 0"
+    using False ab_th_0 by (smt (verit, ccfv_SIG) eventually_at_right)
+  ultimately show ?thesis
+    by (simp add: continuous_at_within_cong)
+qed
+
+lemma ab_mono[simp]:
+  fixes \<theta>::real
+  shows "mono (ab \<theta>)"
+proof -
+  have "mono (indicat_real {\<theta>..})"
+    using mono_indicator_Ici by auto
+  thus ?thesis
+    unfolding ab_def
+    by (metis (mono_tags, lifting) Rings.mono_mult indicator_pos_le monoD ord.mono_on_def)
+qed
+
+lemma tp_measurable[measurable]:
+  fixes \<theta>::real
+  shows "(tp \<theta>) \<in> borel_measurable borel"
+  unfolding tp_def by simp
+
+lemma ennPVs_calc:
+  fixes \<theta>::real
+  shows "(\<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) = ennreal ($v.^\<theta> * indicator {f<..} \<theta>)"
+proof -
+  have [simp]: "Lim (at_left \<theta>) (ab \<theta>) = 0"
+    by (metis (no_types, lifting) ab_th_0 Lim_cong_within tendsto_const
+        lessThan_iff tendsto_Lim trivial_limit_at_left_real)
+  have "(\<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) = (\<integral>\<^sup>+t\<in>{..\<theta>}. $v.^t \<partial>(IM (ab \<theta>)))"
+    unfolding tp_def using ab_constant_on_gt_th by (rewrite nn_integral_interval_measure_Iic; simp)
+  also have "\<dots> = (\<integral>\<^sup>+t\<in>{..<\<theta>}. $v.^t \<partial>(IM (ab \<theta>))) + (\<integral>\<^sup>+t\<in>{\<theta>}. $v.^t \<partial>(IM (ab \<theta>)))"
+    by (rewrite nn_integral_disjoint_pair[THEN sym]; simp flip: ivl_disj_un)
+  moreover have "(\<integral>\<^sup>+t\<in>{..<\<theta>}. $v.^t \<partial>(IM (ab \<theta>))) = 0"
+    by (rewrite Iio_nn_integral_interval_measure_cong[where G="\<lambda>_. 0"];
+        simp add: fun_diff_def interval_measure_const_null ab_constant_on_lt_th)
+  moreover have "(\<integral>\<^sup>+t\<in>{\<theta>}. $v.^t \<partial>(IM (ab \<theta>))) = ennreal ($v.^\<theta> * indicator {f<..} \<theta>)"
+    apply (rewrite nn_integral_indicator_singleton, simp)
+    by (rewrite interval_measure_singleton; simp add: ab_th_indicator ennreal_mult)
+  ultimately show ?thesis
+    by simp
+qed
+
+lemma ennPVs_measurable[measurable]: "(\<lambda>\<theta>. \<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) \<in> borel_measurable borel"
+  by (rewrite ennPVs_calc) measurable
+
+end
+
+sublocale val_defer_cont_whole_life_ins \<subseteq> val i l f ab tp
+  by (standard; simp)
 
 subsubsection \<open>Deferred Continuous Term Life Annuity\<close>
 

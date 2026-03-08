@@ -196,12 +196,10 @@ qed
 
 lemma ennPV_calc: "ennPV = $v.^(f+n)"
 proof -
-  have [simp]: "{..f+n} = {..<f+n} \<union> {f+n}"
-    by force
   have "ennPV = (\<integral>\<^sup>+t\<in>{..f+n}. $v.^t \<partial>(IM abg))"
     using ennPV_abg_fn by simp
   also have "\<dots> = (\<integral>\<^sup>+t\<in>{..<f+n}. $v.^t \<partial>(IM abg)) + (\<integral>\<^sup>+t\<in>{f+n}. $v.^t \<partial>(IM abg))"
-    by (rewrite nn_integral_disjoint_pair[THEN sym]; simp)
+    by (rewrite nn_integral_disjoint_pair[THEN sym]; simp flip: ivl_disj_un)
   moreover have "(\<integral>\<^sup>+t\<in>{..<f+n}. $v.^t \<partial>(IM abg)) = 0"
     by (rewrite Iio_nn_integral_interval_measure_cong[where G="\<lambda>_. 0"];
         simp add: interval_measure_const_null constant_on_def)

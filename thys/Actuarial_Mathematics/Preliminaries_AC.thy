@@ -499,7 +499,14 @@ lemma field_differentiable_shift:
   "(f field_differentiable (at (x + z))) = ((\<lambda>x. f (x + z)) field_differentiable (at x))"
   unfolding field_differentiable_def using DERIV_shift by force
 
-subsection \<open>Lemmas on \<open>indicator\<close> for a Linearly Ordered Type\<close>
+subsection \<open>Lemmas on \<open>indicator\<close> for an Ordered Type\<close>
+
+lemma mono_indicator_Ici: "mono (indicator {a::'a::order..} :: ('a \<Rightarrow> 'b::linordered_semidom))"
+  by (smt (verit) atLeast_iff dual_order.trans indicator_def monoI nle_le split_of_bool
+      zero_less_eq_of_bool)
+
+lemma mono_indicator_Ico: "mono (indicator {a::'a::order <..} :: ('a \<Rightarrow> 'b::linordered_semidom))"
+  by (metis (mono_tags, lifting) indicator_leI mono_greaterThan mono_set monotone_on_def)
 
 lemma indicator_Icc_shift:
   fixes a b t x :: "'a::linordered_ab_group_add"

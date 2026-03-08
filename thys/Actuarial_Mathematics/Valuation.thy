@@ -583,8 +583,7 @@ corollary APV_calc:
   fixes x::real
   assumes "x < $\<psi>"
   shows "APV x = $v.^(f+n) * $p_{f+n&x}"
-  using assms ennAPV_calc ennAPV_fin ennPVs_fin ennAPV_APV APV_nonneg
-  by (metis enn2real_ennreal mult_nonneg_nonneg p_nonneg powr_ge_zero)
+  using assms ennAPV_calc ennAPV_fin ennPVs_fin ennAPV_APV APV_nonneg by fastforce
 
 end
 
@@ -719,6 +718,29 @@ subsection \<open>Actuarial Notation\<close>
 
 context actuarial_model
 begin
+
+definition APV_defer_pure_endow :: "real \<Rightarrow> real \<Rightarrow> real \<Rightarrow> real" (\<open>$E'_{_\<bar>_;_\<rceil>}\<close> [0,0,0] 200)
+  where "$E_{f\<bar>x;n\<rceil>} \<equiv> val.APV i l (val_life_ann.ab (unit_payment.abg f n)) val_life_ann.tp x"
+
+abbreviation APV_pure_endow :: "real \<Rightarrow> real \<Rightarrow> real" (\<open>$E'_{_;_\<rceil>}\<close> [0,0] 200)
+  where "$E_{x;n\<rceil>} \<equiv> $E_{0\<bar>x;n\<rceil>}"
+
+proposition E_defer_calc: "$E_{f\<bar>x;n\<rceil>} = $v.^(f+n) * $p_{f+n&x}"
+  if "f \<ge> 0" "n \<ge> 0" "x < $\<psi>" for f n x :: real
+proof -
+  have [simp]: "val_defer_pure_endow i l f n"
+    by (standard; simp add: that)
+  thus ?thesis
+    unfolding APV_defer_pure_endow_def
+    by (rewrite val_defer_pure_endow.APV_calc; simp add: that)
+qed
+
+corollary E_defer_eq_fn: "$E_{f\<bar>x;n\<rceil>} = $E_{f'\<bar>x;n'\<rceil>}"
+  if "f + n = f' + n'" "f \<ge> 0" "f' \<ge> 0" "n \<ge> 0" "n' \<ge> 0" "x < $\<psi>" for f f' n n' x :: real
+  using E_defer_calc that by simp
+
+corollary E_calc: "$E_{x;n\<rceil>} = $v.^n * $p_{n&x}" if "n \<ge> 0" "x < $\<psi>" for n x :: real
+  using E_defer_calc that by simp
 
 definition APV_defer_cont_whole_life_ann :: "real \<Rightarrow> real \<Rightarrow> real" (\<open>$a'''_{_\<bar>_}\<close> [0,0] 200)
   where "$a'_{f\<bar>x} \<equiv> val.APV i l

@@ -756,10 +756,69 @@ qed
 lemma ennPVs_measurable[measurable]: "(\<lambda>\<theta>. \<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) \<in> borel_measurable borel"
   by (rewrite ennPVs_calc) measurable
 
+lemma
+  fixes \<theta>::real
+  shows PVs_set_integrable: "integrable (IM (ab \<theta>)) (\<lambda>t. $v.^(tp \<theta> t))" and
+    PVs_calc: "(\<integral>t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) = $v.^\<theta> * indicator {f<..} \<theta>"
+proof -
+  have "integrable (IM (ab \<theta>)) (\<lambda>t. $v.^(tp \<theta> t)) \<and>
+    (\<integral>t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) = $v.^\<theta> * indicator {f<..} \<theta>"
+    by (rewrite nn_integral_eq_integrable[THEN sym]; simp add: ennPVs_calc)
+  thus "integrable (IM (ab \<theta>)) (\<lambda>t. $v.^(tp \<theta> t))" and
+    "(\<integral>t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) = $v.^\<theta> * indicator {f<..} \<theta>"
+    by auto
+qed
+
 end
 
 sublocale val_defer_cont_whole_life_ins \<subseteq> val i l f ab tp
   by (standard; simp)
+
+locale val_defer_cont_whole_life_ins_smooth = val_defer_cont_whole_life_ins + smooth_life_table
+begin
+
+lemma APV_calc: 
+  fixes x::real
+  assumes "x < $\<psi>"
+  shows  "APV x = (LBINT t:{f..}. $v.^t * $p_{t&x} * $\<mu>_(x+t))"
+proof -
+  interpret alivex_PS: prob_space "\<MM> \<downharpoonright> alive x"
+    by (rule MM_PS.cond_prob_space_correct; simp add: alive_def assms)
+  interpret distrTx_RD: real_distribution "distr (\<MM> \<downharpoonright> alive x) borel (T x)"
+    by simp
+  have "APV x = (LBINT t:{0..}. pdfT x t * ($v.^t * indicator {f<..} t))"
+    unfolding APV_def apply (rewrite PVs_calc)
+    by (rewrite expectation_LBINT_pdfT_nonneg[of x "\<lambda>\<theta>. $v.^\<theta> * indicator {f<..} \<theta>"];
+        simp add: assms)
+  also have "\<dots> = (LBINT t:{f<..}. pdfT x t * $v.^t)"
+  proof -
+    { fix t
+      have "indicat_real {0..} t * (pdfT x t * ($v .^ t * indicat_real {f<..} t)) =
+        indicat_real {f<..} t * (pdfT x t * $v .^ t)"
+        using f_nonneg less_eq_real_def indicator_eq_0_iff by fastforce }
+    thus ?thesis
+      unfolding set_lebesgue_integral_def
+      by (intro Bochner_Integration.integral_cong; simp)
+  qed
+  also have "\<dots> = (LBINT t:{f<..}. $v.^t * $p_{t&x} * $\<mu>_(x+t))"
+  proof -
+    have "AE t\<in>{f<..} in lborel. pdfT x t * $v.^t = $v.^t * $p_{t&x} * $\<mu>_(x+t)"
+      using pdfTx_p_mu_AE[of x, OF assms] apply (rule AE_mp, intro AE_I2, safe)
+      using f_nonneg by simp_all
+    thus ?thesis
+      using assms by (intro set_lebesgue_integral_cong_AE; simp)
+  qed
+  also have "\<dots> = (LBINT t:{f..}. $v.^t * $p_{t&x} * $\<mu>_(x+t))"
+  proof -
+    have "{f<..} - {f..} \<subseteq> {f} \<and> {f..} - {f<..} \<subseteq> {f}"
+      by force
+    thus ?thesis
+      by (intro set_integral_discrete_difference[of "{f}"]; simp)
+  qed
+  finally show ?thesis .
+qed
+
+end
 
 subsubsection \<open>Deferred Continuous Term Life Annuity\<close>
 

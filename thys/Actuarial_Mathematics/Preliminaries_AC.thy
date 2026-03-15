@@ -1089,6 +1089,24 @@ proof -
   ultimately show ?thesis by (rewrite set_integrable_iff_bounded; simp)
 qed
 
+lemma LBINT_powr_Icc:
+  fixes a b c :: real
+  assumes "a \<le> b" "0 < c" "c \<noteq> 1"
+  shows "(LBINT x:{a..b}. c.^x) = (c.^b - c.^a) / ln c"
+proof -
+  have "ennreal (LBINT x:{a..b}. c.^x) = (\<integral>\<^sup>+x\<in>{a..b}. c.^x \<partial>lborel)"
+    using set_integrable_powr_Icc assms by (rewrite nn_set_integral_eq_set_integral2; simp)
+  also have "\<dots> = ennreal ((c.^b - c.^a) / ln c)"
+    using nn_integral_powr_Icc assms by simp
+  moreover have "0 \<le> (LBINT x:{a..b}. c.^x)"
+    unfolding set_lebesgue_integral_def apply (rule Bochner_Integration.integral_nonneg)
+    using powr_ge_zero by simp
+  moreover have "0 \<le> (c.^b - c.^a) / ln c"
+    using assms by (smt (verit, best) ln_le_zero_iff powr_less_cancel powr_mono' zero_le_divide_iff)
+  ultimately show ?thesis
+    using ennreal_inj by simp
+qed
+
 lemma LBINT_powr_Ici:
   fixes a c :: real
   assumes "0 < c" "c < 1"
@@ -1102,6 +1120,24 @@ proof -
     unfolding set_lebesgue_integral_def apply (rule Bochner_Integration.integral_nonneg)
     using powr_ge_zero by simp
   moreover have "0 \<le> - (c.^a / ln c)"
+    using assms by (simp add: divide_nonneg_neg)
+  ultimately show ?thesis
+    using ennreal_inj by simp
+qed
+
+lemma LBINT_powr_Iic:
+  fixes b c :: real
+  assumes "1 < c"
+  shows "(LBINT x:{..b}. c.^x) = c.^b / ln c"
+proof -
+  have "ennreal (LBINT x:{..b}. c.^x) = (\<integral>\<^sup>+x\<in>{..b}. c.^x \<partial>lborel)"
+    using set_integrable_powr_Iic assms by (rewrite nn_set_integral_eq_set_integral2; simp)
+  also have "\<dots> = ennreal (c.^b / ln c)"
+    using nn_integral_powr_Iic assms by simp
+  moreover have "0 \<le> (LBINT x:{..b}. c.^x)"
+    unfolding set_lebesgue_integral_def apply (rule Bochner_Integration.integral_nonneg)
+    using powr_ge_zero by simp
+  moreover have "0 \<le> c.^b / ln c"
     using assms by (simp add: divide_nonneg_neg)
   ultimately show ?thesis
     using ennreal_inj by simp

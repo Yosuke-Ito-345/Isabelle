@@ -14,4 +14,7 @@ The following are the main changes from afp-devel ba2f4470e120fa0c7e9e4aeb98345a
 - Slightly changed the lemmas `expectation_nonpos_tail` and `expectation_tail`.
 
 ### Survival_model
+- Moved the definition `force_mortal` from the locale `smooth_survival_function` to `survival_model`.
 
+### Life_Table
+- Moved the notation `force_mortal` from the locale `smooth_life_table` to `life_table`.

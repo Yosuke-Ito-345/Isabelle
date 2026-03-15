@@ -774,22 +774,25 @@ end
 sublocale val_defer_cont_whole_life_ins \<subseteq> val i l f ab tp
   by (standard; simp)
 
-locale val_defer_cont_whole_life_ins_smooth = val_defer_cont_whole_life_ins + smooth_life_table
+locale val_defer_cont_whole_life_ins_smooth = val_defer_cont_whole_life_ins
 begin
 
-lemma APV_calc: 
+lemma APV_calc:
   fixes x::real
-  assumes "x < $\<psi>"
+  assumes x_psi: "x < $\<psi>" and l_smooth: "l piecewise_differentiable_on UNIV"
   shows  "APV x = (LBINT t:{f..}. $v.^t * $p_{t&x} * $\<mu>_(x+t))"
 proof -
   interpret alivex_PS: prob_space "\<MM> \<downharpoonright> alive x"
     by (rule MM_PS.cond_prob_space_correct; simp add: alive_def assms)
   interpret distrTx_RD: real_distribution "distr (\<MM> \<downharpoonright> alive x) borel (T x)"
     by simp
+  interpret "smooth_life_table"
+    unfolding smooth_life_table_def using l_smooth life_table_axioms smooth_life_table_axioms.intro
+    by simp
   have "APV x = (LBINT t:{0..}. pdfT x t * ($v.^t * indicator {f<..} t))"
     unfolding APV_def apply (rewrite PVs_calc)
     by (rewrite expectation_LBINT_pdfT_nonneg[of x "\<lambda>\<theta>. $v.^\<theta> * indicator {f<..} \<theta>"];
-        simp add: assms)
+        simp add: x_psi)
   also have "\<dots> = (LBINT t:{f<..}. pdfT x t * $v.^t)"
   proof -
     { fix t
@@ -803,7 +806,7 @@ proof -
   also have "\<dots> = (LBINT t:{f<..}. $v.^t * $p_{t&x} * $\<mu>_(x+t))"
   proof -
     have "AE t\<in>{f<..} in lborel. pdfT x t * $v.^t = $v.^t * $p_{t&x} * $\<mu>_(x+t)"
-      using pdfTx_p_mu_AE[of x, OF assms] apply (rule AE_mp, intro AE_I2, safe)
+      using pdfTx_p_mu_AE[of x, OF x_psi] apply (rule AE_mp, intro AE_I2, safe)
       using f_nonneg by simp_all
     thus ?thesis
       using assms by (intro set_lebesgue_integral_cong_AE; simp)
@@ -939,6 +942,27 @@ proposition
   a'_whole_life_calc: "$a'_{x} = (LBINT t:{0..}. $v.^t * $p_{t&x})"
   if "i > 0" "x < $\<psi>" for x::real
   using that a'_defer_whole_life_set_integrable a'_defer_whole_life_calc by simp+
+
+definition APV_defer_cont_whole_life_ins :: "real \<Rightarrow> real \<Rightarrow> real" (\<open>$A'''_{_\<bar>_}\<close> [0,0] 200)
+  where "$A'_{f\<bar>x} \<equiv>
+    val.APV i l (val_defer_cont_whole_life_ins.ab f) val_defer_cont_whole_life_ins.tp x"
+
+abbreviation APV_cont_whole_life_ins :: "real \<Rightarrow> real" (\<open>$A'''_{_}\<close> [0] 200)
+  where "$A'_{x} \<equiv> $A'_{0\<bar>x}"
+
+proposition A'_defer_whole_life_calc: "$A'_{f\<bar>x} = (LBINT t:{f..}. $v.^t * $p_{t&x} * $\<mu>_(x+t))"
+  if "l piecewise_differentiable_on UNIV" "f \<ge> 0" "x < $\<psi>" for f x :: real
+proof -
+  have [simp]: "val_defer_cont_whole_life_ins_smooth i l f"
+    by standard (rule that)
+  show "$A'_{f\<bar>x} = (LBINT t:{f..}. $v.^t * $p_{t&x} * $\<mu>_(x+t))"
+    unfolding APV_defer_cont_whole_life_ins_def using that
+    by (rewrite val_defer_cont_whole_life_ins_smooth.APV_calc; simp add: that)
+qed
+
+proposition A'_whole_life_calc: "$A'_{x} = (LBINT t:{0..}. $v.^t * $p_{t&x} * $\<mu>_(x+t))"
+  if "l piecewise_differentiable_on UNIV" "x < $\<psi>" for x::real
+  using that A'_defer_whole_life_calc by simp
 
 definition
   APV_defer_cont_term_life_ann :: "real \<Rightarrow> real \<Rightarrow> real \<Rightarrow> real" (\<open>$a'''_{_\<bar>_;_\<rceil>}\<close> [0,0,0] 200)

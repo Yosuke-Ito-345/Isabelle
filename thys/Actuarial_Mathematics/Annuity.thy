@@ -500,15 +500,21 @@ proof -
     by (rewrite defer_cont_perp_ann.PV_calc; simp)
 qed
 
+corollary a'_defer_perp_v_delta: "$a'_{f\<bar>\<infinity>\<rceil>} = $v.^f / $\<delta>" if "f \<ge> 0" "i > 0" for f::real
+  using a'_defer_perp_calc that LBINT_powr_Ici v_delta v_lt_1_iff_i_pos v_pos by simp
+
 proposition
   a'_perp_set_integrable: "set_integrable lborel {0..} (\<lambda>t. $v.^t)" and
   a'_perp_calc: "$a'_\<infinity>\<rceil> = (LBINT t:{0..}. $v.^t)" if "i > 0"
   using that a'_defer_perp_set_integrable a'_defer_perp_calc by simp+
 
+corollary a'_perp_v_delta: "$a'_\<infinity>\<rceil> = 1 / $\<delta>" if "i > 0"
+  using that a'_defer_perp_v_delta v_pos by simp
+
 definition PV_defer_cont_term_ann :: "real \<Rightarrow> real \<Rightarrow> real" (\<open>$a'''_{_\<bar>_\<rceil>}\<close> [0,0] 200)
   where "$a'_{f\<bar>n\<rceil>} \<equiv> annuity.PV i (defer_cont_term_ann.abg f n)"
 
-abbreviation PV_con_term_ann :: "real \<Rightarrow> real" (\<open>$a'''__\<rceil>\<close> [0] 200) where "$a'_n\<rceil> \<equiv> $a'_{0\<bar>n\<rceil>}"
+abbreviation PV_cont_term_ann :: "real \<Rightarrow> real" (\<open>$a'''__\<rceil>\<close> [0] 200) where "$a'_n\<rceil> \<equiv> $a'_{0\<bar>n\<rceil>}"
 
 proposition
   a'_defer_term_set_integrable: "set_integrable lborel {f..f+n} (\<lambda>t. $v.^t)" and

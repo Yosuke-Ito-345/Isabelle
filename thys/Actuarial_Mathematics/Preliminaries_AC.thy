@@ -1032,6 +1032,25 @@ proof -
     using assms by (rewrite nn_integral_FTC_atMost) simp_all+
 qed
 
+lemma nn_set_integral_eq_set_integral2:
+  assumes [measurable]:"set_integrable M A f"
+      and "AE x \<in> A in M. 0 \<le> f x" "A \<in> sets M"
+    shows "(\<integral>\<^sup>+x\<in>A. f x \<partial>M) = (\<integral>x\<in>A. f x \<partial>M)"
+proof -
+  have "integrable M (\<lambda>x. indicat_real A x * f x)"
+    using assms unfolding set_integrable_def by simp
+  moreover have "AE x \<in> A in M. 0 \<le> indicat_real A x * f x"
+    using assms by simp
+  ultimately have "(\<integral>x\<in>A. indicat_real A x * f x \<partial>M) = (\<integral>\<^sup>+x\<in>A. indicat_real A x * f x \<partial>M)"
+    using nn_set_integral_eq_set_integral[of M "\<lambda>x. indicat_real A x * f x"] \<open>A \<in> sets M\<close>
+    unfolding set_lebesgue_integral_def by simp
+  moreover have "(\<integral>x\<in>A. indicat_real A x * f x \<partial>M) = (\<integral>x\<in>A. f x \<partial>M)"
+    by (rule set_lebesgue_integral_cong; simp add: assms)
+  moreover have "(\<integral>\<^sup>+x\<in>A. indicat_real A x * f x \<partial>M) = (\<integral>\<^sup>+x\<in>A. f x \<partial>M)"
+    by (rule set_nn_integral_cong; simp)
+  ultimately show ?thesis by simp
+qed
+
 lemma set_integrable_iff_bounded:
   fixes f :: "'a \<Rightarrow> 'b::{banach, second_countable_topology}"
   assumes "A \<in> sets M"
@@ -1068,6 +1087,24 @@ proof -
   have "set_borel_measurable lborel {..b} (\<lambda>x. c.^x)" unfolding set_borel_measurable_def by simp
   moreover have "(\<integral>\<^sup>+x\<in>{..b}. c.^x \<partial>lborel) < \<top>" using assms nn_integral_powr_Iic by simp
   ultimately show ?thesis by (rewrite set_integrable_iff_bounded; simp)
+qed
+
+lemma LBINT_powr_Ici:
+  fixes a c :: real
+  assumes "0 < c" "c < 1"
+  shows "(LBINT x:{a..}. c.^x) = - (c.^a / ln c)"
+proof -
+  have "ennreal (LBINT x:{a..}. c.^x) = (\<integral>\<^sup>+x\<in>{a..}. c.^x \<partial>lborel)"
+    using set_integrable_powr_Ici assms by (rewrite nn_set_integral_eq_set_integral2; simp)
+  also have "\<dots> = ennreal (- (c.^a / ln c))"
+    using nn_integral_powr_Ici assms by simp
+  moreover have "0 \<le> (LBINT x:{a..}. c.^x)"
+    unfolding set_lebesgue_integral_def apply (rule Bochner_Integration.integral_nonneg)
+    using powr_ge_zero by simp
+  moreover have "0 \<le> - (c.^a / ln c)"
+    using assms by (simp add: divide_nonneg_neg)
+  ultimately show ?thesis
+    using ennreal_inj by simp
 qed
 
 (* Analogue for lemma has_integral_integral_real *)

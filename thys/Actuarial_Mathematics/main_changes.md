@@ -4,6 +4,9 @@ The following are the main changes from afp-devel ba2f4470e120fa0c7e9e4aeb98345a
 
 ## Newly Added Lemmas
 
+### Preliminaries_AC
+- Added `nn_set_integral_eq_set_integral2`, `set_integrable_iff_bounded`.
+
 ### Survival_model
 
 ## Incompatible Changes

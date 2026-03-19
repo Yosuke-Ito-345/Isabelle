@@ -530,11 +530,37 @@ proof -
     by (rewrite defer_cont_term_ann.PV_calc; simp)
 qed
 
+lemma a'_defer_term_v_delta: "$a'_{f\<bar>n\<rceil>} = (if i = 0 then n else ($v.^f - $v.^(f+n)) / $\<delta>)"
+  if "f \<ge> 0" "n \<ge> 0" for f n :: real
+proof (cases \<open>i = 0\<close>)
+  case True
+  hence "$v = 1"
+    using v_1_iff_i_0 by simp
+  hence "$a'_{f\<bar>n\<rceil>} = (LBINT t:{f..f+n}. 1)"
+    using a'_defer_term_calc that by simp
+  also have "\<dots> = n"
+    using set_integral_const measure_lborel_Icc that by simp
+  finally show ?thesis
+    using True by simp
+next
+  case False
+  hence "$v \<noteq> 1"
+    using v_1_iff_i_0 by simp
+  hence "$a'_{f\<bar>n\<rceil>} = ($v.^f - $v.^(f+n)) / $\<delta>"
+    using a'_defer_term_calc LBINT_powr_Icc that v_delta v_pos
+    by (smt (verit, del_insts) divide_minus_left divide_minus_right)
+  with False show ?thesis
+    by simp
+qed
+
 proposition
   a'_term_set_integrable: "set_integrable lborel {0..n} (\<lambda>t. $v.^t)" and
   a'_term_calc: "$a'_n\<rceil> = (LBINT t:{0..n}. $v.^t)"
   if "n \<ge> 0"
   using that a'_defer_term_set_integrable[of 0] a'_defer_term_calc by simp+
+
+corollary a'_term_v_delta: "$a'_n\<rceil> = (if i = 0 then n else (1 - $v.^n) / $\<delta>)" if "n \<ge> 0" for n::real
+  using a'_defer_term_v_delta that v_pos by simp
 
 end
 

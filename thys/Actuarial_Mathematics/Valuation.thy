@@ -774,13 +774,57 @@ end
 sublocale val_defer_cont_whole_life_ins \<subseteq> val i l f ab tp
   by (standard; simp)
 
-locale val_defer_cont_whole_life_ins_smooth = val_defer_cont_whole_life_ins
+context val_defer_cont_whole_life_ins
 begin
+
+lemma ennAPV_v_Tx_f:
+  fixes x::real
+  shows "ennAPV x = \<integral>\<^sup>+\<xi>. $v.^(T x \<xi>) * indicator {f<..} (T x \<xi>) \<partial>(\<MM> \<downharpoonright> alive x)"
+  using ennPVs_calc ennAPV_def by simp
+
+lemma ennAPV_fin:
+  fixes x::real
+  assumes "x < $\<psi>" "i > 0"
+  shows "ennAPV x < \<infinity>"
+proof -
+  interpret alivex_PS: prob_space "\<MM> \<downharpoonright> alive x"
+    by (rule MM_PS.cond_prob_space_correct; simp add: alive_def assms)
+  have [simp]: "(T x) -` {f<..} \<inter> alive x \<in> alivex_PS.events"
+    by (metis MM_PS.space_cond_prob_space Tx_alivex_measurable alive_event
+        greaterThan_borel measurable_sets)
+  have "\<And>\<xi>. \<xi> \<in> space (\<MM> \<downharpoonright> alive x) \<Longrightarrow> $v.^(T x \<xi>) \<le> 1"
+    using assms less_eq_real_def powr01_less_one v_lt_1_iff_i_pos v_pos by force
+  hence "ennAPV x \<le> \<integral>\<^sup>+\<xi>. indicator {f<..} (T x \<xi>) \<partial>(\<MM> \<downharpoonright> alive x)"
+    apply (rewrite ennAPV_v_Tx_f, simp add: assms)
+    by (rule nn_integral_mono) (simp add: split_indicator)
+  also have "\<dots> = \<integral>\<^sup>+\<xi>. indicator ((T x) -` {f<..} \<inter> alive x) \<xi> \<partial>(\<MM> \<downharpoonright> alive x)"
+    apply (rule nn_integral_cong)
+    by (simp add: MM_PS.prob_space_axioms indicator_def prob_space.space_cond_prob_space)
+  also have "\<dots> = emeasure (\<MM> \<downharpoonright> alive x) ((T x) -` {f<..} \<inter> alive x)"
+    by (rewrite nn_integral_indicator; simp)
+  also have "\<dots> \<le> 1"
+    using alivex_PS.measure_le_1 by simp
+  also have "\<dots> < \<infinity>"
+    by simp
+  finally show ?thesis .
+qed
+
+lemma APV_v_Tx_f:
+  fixes x::real
+  shows "APV x = \<integral>\<xi>. $v.^(T x \<xi>) * indicator {f<..} (T x \<xi>) \<partial>(\<MM> \<downharpoonright> alive x)"
+  using APV_def PVs_calc by presburger
+
+corollary APV_v_Tx:
+  fixes x::real
+  assumes "f = 0" "x < $\<psi>"
+  shows "APV x = \<integral>\<xi>. $v.^(T x \<xi>) \<partial>(\<MM> \<downharpoonright> alive x)"
+  apply (rewrite APV_v_Tx_f)
+  by (rule Bochner_Integration.integral_cong; simp add: assms)
 
 lemma APV_calc:
   fixes x::real
   assumes x_psi: "x < $\<psi>" and l_smooth: "l piecewise_differentiable_on UNIV"
-  shows  "APV x = (LBINT t:{f..}. $v.^t * $p_{t&x} * $\<mu>_(x+t))"
+  shows "APV x = (LBINT t:{f..}. $v.^t * $p_{t&x} * $\<mu>_(x+t))"
 proof -
   interpret alivex_PS: prob_space "\<MM> \<downharpoonright> alive x"
     by (rule MM_PS.cond_prob_space_correct; simp add: alive_def assms)
@@ -796,8 +840,8 @@ proof -
   also have "\<dots> = (LBINT t:{f<..}. pdfT x t * $v.^t)"
   proof -
     { fix t
-      have "indicat_real {0..} t * (pdfT x t * ($v .^ t * indicat_real {f<..} t)) =
-        indicat_real {f<..} t * (pdfT x t * $v .^ t)"
+      have "indicat_real {0..} t * (pdfT x t * ($v.^t * indicat_real {f<..} t)) =
+        indicat_real {f<..} t * (pdfT x t * $v.^t)"
         using f_nonneg less_eq_real_def indicator_eq_0_iff by fastforce }
     thus ?thesis
       unfolding set_lebesgue_integral_def
@@ -953,16 +997,25 @@ abbreviation APV_cont_whole_life_ins :: "real \<Rightarrow> real" (\<open>$A'''_
 proposition A'_defer_whole_life_calc: "$A'_{f\<bar>x} = (LBINT t:{f..}. $v.^t * $p_{t&x} * $\<mu>_(x+t))"
   if "l piecewise_differentiable_on UNIV" "f \<ge> 0" "x < $\<psi>" for f x :: real
 proof -
-  have [simp]: "val_defer_cont_whole_life_ins_smooth i l f"
+  have [simp]: "val_defer_cont_whole_life_ins i l f"
     by standard (rule that)
   show "$A'_{f\<bar>x} = (LBINT t:{f..}. $v.^t * $p_{t&x} * $\<mu>_(x+t))"
     unfolding APV_defer_cont_whole_life_ins_def using that
-    by (rewrite val_defer_cont_whole_life_ins_smooth.APV_calc; simp add: that)
+    by (rewrite val_defer_cont_whole_life_ins.APV_calc; simp add: that)
 qed
 
 proposition A'_whole_life_calc: "$A'_{x} = (LBINT t:{0..}. $v.^t * $p_{t&x} * $\<mu>_(x+t))"
   if "l piecewise_differentiable_on UNIV" "x < $\<psi>" for x::real
   using that A'_defer_whole_life_calc by simp
+
+lemma A'_whole_life_v_Tx: "$A'_{x} = \<integral>\<xi>. $v.^(T x \<xi>) \<partial>(\<MM> \<downharpoonright> alive x)" if "x < $\<psi>" for x::real
+proof -
+  have "val_defer_cont_whole_life_ins i l 0"
+    by standard simp
+  thus ?thesis
+    unfolding APV_defer_cont_whole_life_ins_def
+    by (rewrite val_defer_cont_whole_life_ins.APV_v_Tx; simp add: that)
+qed
 
 definition
   APV_defer_cont_term_life_ann :: "real \<Rightarrow> real \<Rightarrow> real \<Rightarrow> real" (\<open>$a'''_{_\<bar>_;_\<rceil>}\<close> [0,0,0] 200)
@@ -1075,6 +1128,28 @@ proof -
     unfolding APV_defer_cont_whole_life_ann_def PV_defer_cont_term_ann_def using vcwla.ennAPV_fin
     by (rewrite vcwla.APV_PV_abg; simp add: that)
 
+qed
+
+lemma A'_whole_life_eq_delta_a'_whole_life: "$A'_{x} = 1 - $\<delta> * $a'_{x}"
+  if "i > 0" "x < $\<psi>" for x::real
+proof -
+  interpret alivex_PS: prob_space "\<MM> \<downharpoonright> alive x"
+    by (rule MM_PS.cond_prob_space_correct; simp add: that alive_def)
+  have "\<And>\<xi>. \<xi> \<in> space (\<MM> \<downharpoonright> alive x) \<Longrightarrow> $v.^(T x \<xi>) \<le> 1"
+    using that less_eq_real_def powr01_less_one v_lt_1_iff_i_pos v_pos by force
+  hence [simp]: "integrable (\<MM> \<downharpoonright> alive x) (\<lambda>\<xi>. $v.^(T x \<xi>))"
+    using that by (intro alivex_PS.integrable_const_bound[where B=1]; simp)
+  have "$a'_{x} = alivex_PS.expectation (\<lambda>\<xi>. $a'_T x \<xi>\<rceil>)"
+    using a'_whole_life_term_Tx that by simp
+  also have "\<dots> = alivex_PS.expectation (\<lambda>\<xi>. (1 - $v.^(T x \<xi>)) / $\<delta>)"
+    using a'_term_v_delta less_eq_real_def that by (intro Bochner_Integration.integral_cong; simp)
+  also have "\<dots> = (1 - alivex_PS.expectation (\<lambda>\<xi>. $v.^(T x \<xi>))) / $\<delta>"
+    apply (rewrite integral_divide_zero)
+    by (rewrite Bochner_Integration.integral_diff; simp add: alivex_PS.prob_space)
+  also have "\<dots> = (1 - $A'_{x}) / $\<delta>"
+    using A'_whole_life_v_Tx that by simp
+  finally show ?thesis
+    using delta_0_iff_i_0 that by auto
 qed
 
 end

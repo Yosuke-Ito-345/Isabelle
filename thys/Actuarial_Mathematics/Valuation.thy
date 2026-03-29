@@ -438,17 +438,17 @@ proof -
   { fix \<xi> assume "\<xi> \<in> space (\<MM> \<downharpoonright> alive x)"
     have "ab (T x \<xi>) constant_on {T x \<xi> <..}"
       using ab_constant_on_th by (meson Ioi_le_Ico constant_on_subset)
-    hence "(\<integral>\<^sup>+t. ennreal ($v.^(tp (T x \<xi>) t)) \<partial>(IM (ab (T x \<xi>)))) = 
-      (\<integral>\<^sup>+t\<in>{..< T x \<xi>}. ennreal ($v.^(tp (T x \<xi>) t)) \<partial>(IM (ab (T x \<xi>))))"
+    hence "(\<integral>\<^sup>+t. $v.^(tp (T x \<xi>) t) \<partial>(IM (ab (T x \<xi>))))
+      = (\<integral>\<^sup>+t\<in>{..< T x \<xi>}. $v.^(tp (T x \<xi>) t) \<partial>(IM (ab (T x \<xi>))))"
       by (rewrite nn_integral_interval_measure_Iio[where s="T x \<xi>"]; simp add: isCont_ab_th)
-    also have "\<dots> = (\<integral>\<^sup>+t\<in>{..< T x \<xi>}. ennreal ($v.^(tp (T x \<xi>) t)) \<partial>(IM abg))"
+    also have "\<dots> = (\<integral>\<^sup>+t\<in>{..< T x \<xi>}. $v.^(tp (T x \<xi>) t) \<partial>(IM abg))"
       by (rule Iio_nn_integral_interval_measure_cong;
           simp add: fun_diff_def ab_eq_abg constant_on_def)
-    also have "\<dots> = (\<integral>\<^sup>+t\<in>{..< T x \<xi>}. ennreal ($v.^t) \<partial>(IM abg))" unfolding tp_def by simp
+    also have "\<dots> = (\<integral>\<^sup>+t\<in>{..< T x \<xi>}. $v.^t \<partial>(IM abg))"
+      unfolding tp_def by simp
     finally have
-      "(\<integral>\<^sup>+t. ennreal ($v.^(tp (T x \<xi>) t)) \<partial>(IM (ab (T x \<xi>)))) =
-        (\<integral>\<^sup>+t\<in>{..< T x \<xi>}. ennreal ($v.^t) \<partial>(IM abg))" . }
-  hence "ennAPV x = \<integral>\<^sup>+\<xi>. (\<integral>\<^sup>+t\<in>{..< T x \<xi>}. ennreal ($v.^t) \<partial>(IM abg)) \<partial>(\<MM> \<downharpoonright> alive x)"
+      "(\<integral>\<^sup>+t. $v.^(tp (T x \<xi>) t) \<partial>(IM (ab (T x \<xi>)))) = (\<integral>\<^sup>+t\<in>{..< T x \<xi>}. $v.^t \<partial>(IM abg))" . }
+  hence "ennAPV x = \<integral>\<^sup>+\<xi>. (\<integral>\<^sup>+t\<in>{..< T x \<xi>}. $v.^t \<partial>(IM abg)) \<partial>(\<MM> \<downharpoonright> alive x)"
     unfolding ennAPV_def by (meson nn_integral_cong)
   also have "\<dots> = (\<integral>\<^sup>+t. $v.^t * $p_{t&x} \<partial>(IM abg))"
     using assms

@@ -84,7 +84,7 @@ text \<open>
      (ii) "tp" stands for "time of payment".
     (iii) "PVs" stands for "present value".
           I add the suffix "s", representing "sample path",
-          to distinguish the present value in "Annuity.thy".
+          to distinguish the present value in Annuity.thy.
      (iv) \<open>\<theta>\<close> represents the future lifetime of the insured.
       (v) \<open>t\<close> represents the time from the beginning of the life insurance contract.
      (vi) \<open>f\<close> represents the deferred period (possibly \<open>0\<close>).
@@ -626,7 +626,7 @@ lemma
     APV_calc: "APV x = (LBINT t:{f..}. $v.^t * $p_{t&x})"
 proof -
 
-  text \<open>Proof of "APV_set_integrable"\<close>
+  text \<open>Proof of "APV set integrable"\<close>
   have "(\<integral>\<^sup>+t\<in>{f..}. \<bar>$v.^t * $p_{t&x}\<bar> \<partial>lborel) < \<infinity>"
     using ennAPV_calc ennAPV_fin assms by simp
   moreover have "set_borel_measurable lborel {f..} (\<lambda>t. $v.^t * $p_{t&x})"
@@ -634,7 +634,7 @@ proof -
   ultimately show APV_set_integrable: "set_integrable lborel {f..} (\<lambda>t. $v.^t * $p_{t&x})"
     by (rewrite set_integrable_iff_bounded; simp)
 
-  text \<open>Proof of "APV_calc"\<close>
+  text \<open>Proof of "APV calc"\<close>
   have "ennreal (APV x) = ennAPV x"
     using ennAPV_fin ennPVs_fin ennAPV_APV assms by simp
   also have "\<dots> = ennreal (LBINT t:{f..}. $v.^t * $p_{t&x})"
@@ -909,7 +909,7 @@ lemma
     APV_calc: "APV x = (LBINT t:{f..f+n}. $v.^t * $p_{t&x})"
 proof -
 
-  text \<open>Proof of "APV_set_integrable"\<close>
+  text \<open>Proof of "APV set integrable"\<close>
   have "set_integrable lborel {f..f+n} (\<lambda>t. $v.^t)"
     using v_pos by (rule set_integrable_powr_Icc)
   moreover have " set_borel_measurable lborel {f..f+n} (\<lambda>t. $v.^t * $p_{t&x})"
@@ -919,7 +919,7 @@ proof -
   ultimately show APV_set_integrable: "set_integrable lborel {f..f+n} (\<lambda>t. $v.^t * $p_{t&x})"
     by (rule set_integrable_bound)
 
-  text \<open>Proof of "APV_calc"\<close>
+  text \<open>Proof of "APV calc"\<close>
   have "ennreal (APV x) = ennAPV x"
     using ennPVs_fin ennAPV_APV ennAPV_fin assms by (rewrite ennAPV_APV; simp)
   also have "\<dots> = ennreal (LBINT t:{f..f+n}. $v.^t * $p_{t&x})"

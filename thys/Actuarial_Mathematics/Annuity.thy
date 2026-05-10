@@ -100,7 +100,7 @@ lemma
   PV_abg_f_fn: "PV = (\<integral>t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
 proof -
 
-  text \<open>Proof of "PV_abg_set_integrable"\<close>
+  text \<open>Proof of "PV abg set integrable"\<close>
   have "set_borel_measurable (IM abg) {f..f+n} (\<lambda>t. $v.^t)"
     unfolding set_borel_measurable_def by simp
   moreover have " (\<integral>\<^sup>+t\<in>{f..f+n}. ennreal (norm ($v.^t)) \<partial>(IM abg)) < \<infinity>"
@@ -108,7 +108,7 @@ proof -
   ultimately show PV_abg_set_integrable: "set_integrable (IM abg) {f..f+n} (\<lambda>t. $v.^t)"
     by (rewrite set_integrable_iff_bounded; simp)
 
-  text \<open>Proof of "PV_abg_f_fn"\<close>
+  text \<open>Proof of "PV abg f fn"\<close>
   have "ennreal PV = ennPV"
     using ennPV_fin ennPV_PV by simp
   also have "\<dots> = (\<integral>\<^sup>+t\<in>{f..f+n}. $v.^t \<partial>(IM abg))"
@@ -132,7 +132,7 @@ locale unit_payment = interest +
 begin
 
 definition abg :: "real \<Rightarrow> real" where "abg t \<equiv> indicator {f+n..} t"
-\<comment> \<open>In practice, "abg" can be defined with only one variable \<open>n\<close>: "abg t \<equiv> indicator {n..} t".
+\<comment> \<open>In practice, "abg" can be defined with only one variable \<open>n\<close>: \<open>abg t \<equiv> indicator {n..} t\<close>.
   However, I deliberately keep the variable \<open>f\<close> here
   to maintain consistency with other types of annuities.\<close>
 
@@ -323,11 +323,11 @@ lemma
     PV_calc: "PV = (LBINT t:{f..}. $v.^t)"
 proof -
 
-  text \<open>Proof of "PV_set_integrable"\<close>
+  text \<open>Proof of "PV set integrable"\<close>
   show PV_set_integrable: "set_integrable lborel {f..} (\<lambda>t. $v.^t)"
     using assms set_integrable_powr_Ici v_lt_1_iff_i_pos v_pos by presburger
 
-  text \<open>Proof of "PV_calc"\<close>
+  text \<open>Proof of "PV calc"\<close>
   have "ennPV = ennreal (LBINT t:{f..}. $v.^t)"
     apply (rewrite ennPV_calc)
     by (rule set_nn_integral_eq_set_integral; simp add: PV_nonneg PV_set_integrable)
@@ -461,11 +461,11 @@ lemma
   PV_calc: "PV = (LBINT t:{f..f+n}. $v.^t)"
 proof -
 
-  text \<open>Proof of "PV_set_integrable"\<close>
+  text \<open>Proof of "PV set integrable"\<close>
   show PV_set_integrable: "set_integrable lborel {f..f+n} (\<lambda>t. $v.^t)"
     using set_integrable_powr_Icc v_pos by simp
 
-  text \<open>Proof of "PV_calc"\<close>
+  text \<open>Proof of "PV calc"\<close>
   have "ennPV = ennreal (LBINT t:{f..f+n}. $v.^t)"
     apply (rewrite ennPV_calc)
     by (rule set_nn_integral_eq_set_integral; simp add: PV_nonneg PV_set_integrable)

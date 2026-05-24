@@ -3,6 +3,7 @@ theory Valuation
 begin
 
 declare[[show_types]]
+declare [[verit_options = "--proof-with-sharing --max-time=30"]]
 
 section \<open>Auxiliary lemmas\<close>
 
@@ -928,6 +929,225 @@ proof -
   finally show "APV x = (LBINT t:{f..f+n}. $v.^t * $p_{t&x})"
     using ennreal_inj assms APV_nonneg by simp
 
+qed
+
+end
+
+subsubsection \<open>Deferred Continuous Term Life Insurance\<close>
+
+locale val_defer_cont_term_life_ins = actuarial_model +
+  fixes f n :: real
+  assumes f_nonneg[simp]: "f \<ge> 0" and
+    n_nonneg[simp]: "n \<ge> 0"
+begin
+
+definition ab :: "real \<Rightarrow> real \<Rightarrow> real" where "ab \<theta> t \<equiv> indicator {f<..f+n} \<theta> * indicator {\<theta>..} t"
+
+definition tp :: "real\<Rightarrow> real \<Rightarrow> real" where "tp \<theta> t \<equiv> t"
+
+text \<open>
+  The proofs in this locale are basically obtained
+  by changing indicator \<open>{f<..}\<close> in val_defer_cont_whole_life_ins to indicator \<open>{f<..f+n}\<close>.
+\<close>
+
+lemma ab_le_f_0[simp]:
+  fixes \<theta> t :: real
+  assumes "t \<le> f"
+  shows "ab \<theta> t = 0"
+  unfolding ab_def using assms indicator_eq_0_iff by fastforce
+
+corollary ab_f_0[simp]:
+  fixes \<theta> t :: real
+  assumes "t < f"
+  shows "ab \<theta> t = 0"
+  using ab_le_f_0 assms by simp
+
+lemma ab_th_0[simp]:
+  fixes \<theta> t :: real
+  assumes "t < \<theta>"
+  shows "ab \<theta> t = 0"
+  unfolding ab_def using assms by simp
+
+corollary ab_constant_on_lt_th:
+  fixes \<theta>
+  shows "(ab \<theta>) constant_on {..<\<theta>}"
+  using ab_th_0 by (simp add: constant_on_def)
+
+lemma ab_th_indicator:
+  fixes \<theta> t :: real
+  assumes "\<theta> \<le> t"
+  shows "ab \<theta> t = indicator {f<..f+n} \<theta>"
+  unfolding ab_def using assms by simp
+
+corollary ab_constant_on_gt_th:
+  fixes \<theta>
+  shows "(ab \<theta>) constant_on {\<theta><..}"
+  using ab_th_indicator by (simp add: constant_on_def)
+
+lemma ab_f_fn_th_1:
+  fixes \<theta> t :: real
+  assumes "f < \<theta>" "\<theta> \<le> f+n" "\<theta> \<le> t"
+  shows "ab \<theta> t = 1"
+  unfolding ab_def using assms by simp
+
+lemma ab_right_continuous[simp]:
+  fixes \<theta> t :: real
+  shows "continuous (at_right t) (ab \<theta>)"
+proof (cases \<open>\<theta> \<le> t\<close>)
+  case True
+  hence "\<forall>\<^sub>F s in at_right t. ab \<theta> s = indicator {f<..f+n} \<theta>"
+    by (smt (verit, ccfv_SIG) ab_def ab_th_indicator eventually_at_right_less eventually_mono
+        less_eq_real_def)
+  with True show ?thesis
+    by (rewrite continuous_at_within_cong[of _ t "\<lambda>_. indicator {f<..f+n} \<theta>"]; simp add: ab_def)
+next
+  case False
+  moreover have "\<forall>\<^sub>F s in at_right t. ab \<theta> s = 0"
+    using False ab_th_0 by (smt (verit, ccfv_SIG) eventually_at_right)
+  ultimately show ?thesis
+    by (simp add: continuous_at_within_cong)
+qed
+
+lemma ab_mono[simp]:
+  fixes \<theta>::real
+  shows "mono (ab \<theta>)"
+proof -
+  have "mono (indicat_real {\<theta>..})"
+    using mono_indicator_Ici by auto
+  thus ?thesis
+    unfolding ab_def
+    by (metis (mono_tags, lifting) Rings.mono_mult indicator_pos_le monoD ord.mono_on_def)
+qed
+
+lemma tp_measurable[measurable]:
+  fixes \<theta>::real
+  shows "(tp \<theta>) \<in> borel_measurable borel"
+  unfolding tp_def by simp
+
+lemma ennPVs_calc:
+  fixes \<theta>::real
+  shows "(\<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) = ennreal ($v.^\<theta> * indicator {f<..f+n} \<theta>)"
+proof -
+  have [simp]: "Lim (at_left \<theta>) (ab \<theta>) = 0"
+    by (metis (no_types, lifting) ab_th_0 Lim_cong_within tendsto_const
+        lessThan_iff tendsto_Lim trivial_limit_at_left_real)
+  have "(\<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) = (\<integral>\<^sup>+t\<in>{..\<theta>}. $v.^t \<partial>(IM (ab \<theta>)))"
+    unfolding tp_def using ab_constant_on_gt_th by (rewrite nn_integral_interval_measure_Iic; simp)
+  also have "\<dots> = (\<integral>\<^sup>+t\<in>{..<\<theta>}. $v.^t \<partial>(IM (ab \<theta>))) + (\<integral>\<^sup>+t\<in>{\<theta>}. $v.^t \<partial>(IM (ab \<theta>)))"
+    by (rewrite nn_integral_disjoint_pair[THEN sym]; simp flip: ivl_disj_un)
+  moreover have "(\<integral>\<^sup>+t\<in>{..<\<theta>}. $v.^t \<partial>(IM (ab \<theta>))) = 0"
+    by (rewrite Iio_nn_integral_interval_measure_cong[where G="\<lambda>_. 0"];
+        simp add: fun_diff_def interval_measure_const_null ab_constant_on_lt_th)
+  moreover have "(\<integral>\<^sup>+t\<in>{\<theta>}. $v.^t \<partial>(IM (ab \<theta>))) = ennreal ($v.^\<theta> * indicator {f<..f+n} \<theta>)"
+    apply (rewrite nn_integral_indicator_singleton, simp)
+    by (rewrite interval_measure_singleton; simp add: ab_th_indicator ennreal_mult)
+  ultimately show ?thesis
+    by simp
+qed
+
+lemma ennPVs_measurable[measurable]: "(\<lambda>\<theta>. \<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) \<in> borel_measurable borel"
+  by (rewrite ennPVs_calc) measurable
+
+lemma
+  fixes \<theta>::real
+  shows PVs_set_integrable: "integrable (IM (ab \<theta>)) (\<lambda>t. $v.^(tp \<theta> t))" and
+    PVs_calc: "(\<integral>t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) = $v.^\<theta> * indicator {f<..f+n} \<theta>"
+proof -
+  have "integrable (IM (ab \<theta>)) (\<lambda>t. $v.^(tp \<theta> t)) \<and>
+    (\<integral>t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) = $v.^\<theta> * indicator {f<..f+n} \<theta>"
+    by (rewrite nn_integral_eq_integrable[THEN sym]; simp add: ennPVs_calc)
+  thus "integrable (IM (ab \<theta>)) (\<lambda>t. $v.^(tp \<theta> t))" and
+    "(\<integral>t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) = $v.^\<theta> * indicator {f<..f+n} \<theta>"
+    by auto
+qed
+
+end
+
+sublocale val_defer_cont_term_life_ins \<subseteq> val i l f ab tp
+  by (standard; simp)
+
+context val_defer_cont_term_life_ins
+begin
+
+lemma ennAPV_v_Tx_f_fn:
+  fixes x::real
+  shows "ennAPV x = \<integral>\<^sup>+\<xi>. $v.^(T x \<xi>) * indicator {f<..f+n} (T x \<xi>) \<partial>(\<MM> \<downharpoonright> alive x)"
+  using ennPVs_calc ennAPV_def by simp
+
+lemma ennAPV_fin:
+  fixes x::real
+  assumes "x < $\<psi>"
+  shows "ennAPV x < \<infinity>"
+proof -
+  interpret alivex_PS: prob_space "\<MM> \<downharpoonright> alive x"
+    by (rule MM_PS.cond_prob_space_correct; simp add: alive_def assms)
+  let ?c = "max ($v.^f) ($v.^(f+n))"
+  have "AE \<xi> in \<MM> \<downharpoonright> alive x.  $v.^(T x \<xi>) * indicator {f<..f+n} (T x \<xi>) \<le> ?c"
+    by (rule AE_I2)
+      (metis greaterThanAtMost_iff indicator_times_eq_if(2) le_max_iff_disj less_eq_real_def
+        linear powr_ge_zero powr_mono powr_mono' v_pos)
+  hence "ennAPV x \<le> ?c"
+    apply (rewrite ennAPV_v_Tx_f_fn)
+    by (rule alivex_PS.nn_integral_le_const; force simp add: ennreal_leI)
+  also have "\<dots> < \<infinity>"
+    by simp
+  finally show ?thesis .
+qed
+
+lemma APV_v_Tx_f_fn:
+  fixes x::real
+  shows "APV x = \<integral>\<xi>. $v.^(T x \<xi>) * indicator {f<..f+n} (T x \<xi>) \<partial>(\<MM> \<downharpoonright> alive x)"
+  using APV_def PVs_calc by presburger
+
+corollary APV_v_Tx_n:
+  fixes x::real
+  assumes "f = 0" "x < $\<psi>"
+  shows "APV x = \<integral>\<xi>. $v.^(T x \<xi>) * indicator {..n} (T x \<xi>) \<partial>(\<MM> \<downharpoonright> alive x)"
+  by (rewrite APV_v_Tx_f_fn)
+    (rule Bochner_Integration.integral_cong; simp add:v_pos assms indicator_times_eq_if )
+
+lemma APV_calc:
+  fixes x::real
+  assumes x_psi: "x < $\<psi>" and l_smooth: "l piecewise_differentiable_on UNIV"
+  shows "APV x = (LBINT t:{f..f+n}. $v.^t * $p_{t&x} * $\<mu>_(x+t))"
+proof -
+  interpret alivex_PS: prob_space "\<MM> \<downharpoonright> alive x"
+    by (rule MM_PS.cond_prob_space_correct; simp add: alive_def assms)
+  interpret distrTx_RD: real_distribution "distr (\<MM> \<downharpoonright> alive x) borel (T x)"
+    by simp
+  interpret "smooth_life_table"
+    unfolding smooth_life_table_def using l_smooth life_table_axioms smooth_life_table_axioms.intro
+    by simp
+  have "APV x = (LBINT t:{0..}. pdfT x t * ($v.^t * indicator {f<..f+n} t))"
+    unfolding APV_def apply (rewrite PVs_calc)
+    by (rewrite expectation_LBINT_pdfT_nonneg[of x "\<lambda>\<theta>. $v.^\<theta> * indicator {f<..f+n} \<theta>"];
+        simp add: x_psi)
+  also have "\<dots> = (LBINT t:{f<..f+n}. pdfT x t * $v.^t)"
+  proof -
+    { fix t
+      have "indicat_real {0..} t * (pdfT x t * ($v.^t * indicat_real {f<..f+n} t)) =
+        indicat_real {f<..f+n} t * (pdfT x t * $v.^t)"
+        using f_nonneg less_eq_real_def indicator_eq_0_iff by fastforce }
+    thus ?thesis
+      unfolding set_lebesgue_integral_def
+      by (intro Bochner_Integration.integral_cong; simp)
+  qed
+  also have "\<dots> = (LBINT t:{f<..f+n}. $v.^t * $p_{t&x} * $\<mu>_(x+t))"
+  proof -
+    have "AE t\<in>{f<..f+n} in lborel. pdfT x t * $v.^t = $v.^t * $p_{t&x} * $\<mu>_(x+t)"
+      using pdfTx_p_mu_AE[of x, OF x_psi] apply (rule AE_mp, intro AE_I2, safe)
+      using f_nonneg by simp_all
+    thus ?thesis
+      using assms by (intro set_lebesgue_integral_cong_AE; simp)
+  qed
+  also have "\<dots> = (LBINT t:{f..f+n}. $v.^t * $p_{t&x} * $\<mu>_(x+t))"
+  proof -
+    have "{f<..f+n} - {f..f+n} \<subseteq> {f} \<and> {f..f+n} - {f<..f+n} \<subseteq> {f}"
+      by force
+    thus ?thesis
+      by (intro set_integral_discrete_difference[of "{f}"]; simp)
+  qed
+  finally show ?thesis .
 qed
 
 end

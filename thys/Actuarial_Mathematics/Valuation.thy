@@ -1372,6 +1372,28 @@ proof -
     using delta_0_iff_i_0 that by auto
 qed
 
+definition
+  APV_defer_cont_term_life_ins :: "real \<Rightarrow> real \<Rightarrow> real \<Rightarrow> real" (\<open>$A'''_{_\<bar>_;_\<rceil>}\<close> [0,0,0] 200)
+  where "$A'_{f\<bar>x;n\<rceil>} \<equiv>
+    val.APV i l (val_defer_cont_term_life_ins.ab f n) val_defer_cont_term_life_ins.tp x"
+
+abbreviation APV_cont_term_life_ins :: "real \<Rightarrow> real \<Rightarrow> real" (\<open>$A'''_{_;_\<rceil>}\<close> [0,0] 200)
+  where "$A'_{x;n\<rceil>} \<equiv> $A'_{0\<bar>x;n\<rceil>}"
+
+proposition A'_defer_term_life_calc: "$A'_{f\<bar>x;n\<rceil>} = (LBINT t:{f..f+n}. $v.^t * $p_{t&x} * $\<mu>_(x+t))"
+  if "l piecewise_differentiable_on UNIV" "f \<ge> 0" "n \<ge> 0" "x < $\<psi>" for f x :: real
+proof -
+  have [simp]: "val_defer_cont_term_life_ins i l f n"
+    by (standard; simp add: that)
+  show "$A'_{f\<bar>x;n\<rceil>} = (LBINT t:{f..f+n}. $v.^t * $p_{t&x} * $\<mu>_(x+t))"
+    unfolding APV_defer_cont_term_life_ins_def using that
+    by (rewrite val_defer_cont_term_life_ins.APV_calc; simp add: that)
+qed
+
+proposition A'_term_life_calc: "$A'_{x;n\<rceil>} = (LBINT t:{0..n}. $v.^t * $p_{t&x} * $\<mu>_(x+t))"
+  if "l piecewise_differentiable_on UNIV" "n \<ge> 0" "x < $\<psi>" for x::real
+  using that A'_defer_term_life_calc by simp
+
 end
 
 end

@@ -292,6 +292,24 @@ corollary antimono_at_bot_ge:
   shows "\<And>x. f x \<le> b"
   using antimono_on_at_bot_ge assms antimono_imp_mono_on by blast
 
+lemma indicator_Ici_right_continuous:
+  fixes a x :: real
+  shows "continuous (at_right x) (indicator {a..})"
+proof (cases \<open>a \<le> x\<close>)
+  case True
+  hence "\<forall>\<^sub>F y in at_right x. indicator {a..} y = 1"
+    by (smt (verit, ccfv_threshold) Ioi_le_Ico eventually_at_right_less eventually_mono
+        greaterThan_iff indicator_eq_1_iff subset_iff)
+  with True show ?thesis
+    by (simp add: continuous_at_within_cong indicator_eq_1_iff)
+next
+  case False
+  hence "\<forall>\<^sub>F y in at_right x. indicator {a..} y = 0"
+    by (metis (mono_tags, lifting) atLeast_iff eventually_at_right indicator_eq_0_iff not_le)
+  with False show ?thesis
+    by (simp add: continuous_at_within_cong indicator_eq_0_iff)
+qed
+
 lemma continuous_cdivide:
   fixes c::"'a::real_normed_field"
   assumes "c \<noteq> 0" "continuous F f"

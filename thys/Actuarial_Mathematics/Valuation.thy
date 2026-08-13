@@ -7,6 +7,185 @@ declare [[verit_options = "--proof-with-sharing --max-time=30"]]
 
 section \<open>Auxiliary lemmas\<close>
 
+(* To be included in Lebesgue_Stieltjes_Integral.thy *)
+lemma sum_positive:
+  assumes "positive A \<mu>" and "positive A \<mu>'"
+  shows "positive A (\<lambda>a. \<mu> a + \<mu>' a)"
+  using assms unfolding positive_def by simp
+
+(* To be included in Lebesgue_Stieltjes_Integral.thy *)
+lemma sum_countably_additive:
+  assumes "countably_additive A \<mu>" and "countably_additive A \<mu>'"
+  shows "countably_additive A (\<lambda>a. \<mu> a + \<mu>' a)"
+  unfolding countably_additive_def
+proof safe
+  fix u :: "nat \<Rightarrow> 'a set"
+  assume asm: "range u \<subseteq> A" "disjoint_family u" "(\<Union>i. u i) \<in> A"
+  have "(\<Sum>i. \<mu> (u i) + \<mu>' (u i)) = (\<Sum>i. \<mu> (u i)) + (\<Sum>i. \<mu>' (u i))"
+    by (simp add: suminf_add)
+  also have "\<dots> = \<mu> (\<Union>i. u i) + \<mu>' (\<Union>i. u i)"
+    using assms asm unfolding countably_additive_def by simp_all
+  finally show "(\<Sum>i. \<mu> (u i) + \<mu>' (u i)) = \<mu> (\<Union>i. u i) + \<mu>' (\<Union>i. u i)" .
+qed
+
+(* To be included in Lebesgue_Stieltjes_Integral.thy *)
+lemma measure_space_sum_emeasure:
+  assumes "measure_space \<Omega> A \<mu>" and "measure_space \<Omega> A \<mu>'"
+  shows "measure_space \<Omega> A (\<lambda>a. \<mu> a + \<mu>' a)"
+  using sum_countably_additive sum_positive assms unfolding measure_space_def by force
+
+(* To be included in Lebesgue_Stieltjes_Integral.thy *)
+lemma simple_integral_sum_emeasure:
+  assumes "measure_space \<Omega> A \<mu>" and "measure_space \<Omega> A \<mu>'" "simple_function (measure_of \<Omega> A \<mu>) f"
+  shows "integral\<^sup>S (measure_of \<Omega> A (\<lambda>a. \<mu> a + \<mu>' a)) f =
+    integral\<^sup>S (measure_of \<Omega> A \<mu>) f + integral\<^sup>S (measure_of \<Omega> A \<mu>') f"
+proof -
+  let ?sm = "\<lambda>a. \<mu> a + \<mu>' a"
+  have [simp]: "sigma_algebra \<Omega> A" "positive A ?sm" "countably_additive A ?sm"
+    using assms measure_space_sum_emeasure measure_space_def by blast+
+  have [simp]: "\<And>x. f -` {x} \<inter> \<Omega> \<in> A"
+    by (metis assms(1,3) measure_space_def sigma_algebra.sets_measure_of_eq
+        simple_functionD(2) space_measure_of_conv)
+  have "integral\<^sup>S (measure_of \<Omega> A ?sm) f = (\<Sum>x \<in> f ` \<Omega>. x * ?sm (f -` {x} \<inter> \<Omega>))"
+    unfolding simple_integral_def
+    by (rewrite emeasure_measure_of_sigma; simp add: space_measure_of_conv)
+  also have "\<dots> = (\<Sum>x \<in> f ` \<Omega>. x * \<mu> (f -` {x} \<inter> \<Omega>)) + (\<Sum>x \<in> f ` \<Omega>. x * \<mu>' (f -` {x} \<inter> \<Omega>))"
+    by (simp add: distrib_left sum.distrib)
+  also have "\<dots> = integral\<^sup>S (measure_of \<Omega> A \<mu>) f + integral\<^sup>S (measure_of \<Omega> A \<mu>') f"
+    using assms unfolding simple_integral_def measure_space_def
+    by (rewrite emeasure_measure_of_sigma; simp add: space_measure_of_conv)+
+  finally show ?thesis .
+qed
+
+(* To be included in Lebesgue_Stieltjes_Integral.thy *)
+lemma nn_integral_sum_emeasure:
+  assumes "measure_space \<Omega> A \<mu>" and "measure_space \<Omega> A \<mu>'"
+  shows "integral\<^sup>N (measure_of \<Omega> A (\<lambda>a. \<mu> a + \<mu>' a)) f =
+    integral\<^sup>N (measure_of \<Omega> A \<mu>) f + integral\<^sup>N (measure_of \<Omega> A \<mu>') f"
+proof -
+
+  let ?sm = "\<lambda>a. \<mu> a + \<mu>' a"
+  let ?LEf = "{g. simple_function (measure_of \<Omega> A \<mu>) g \<and> g \<le> f}"
+
+  have LEf'[simp]: "{g. simple_function (measure_of \<Omega> A \<mu>') g \<and> g \<le> f} = ?LEf"
+    using simple_function_cong_algebra
+    by (metis (lifting) sets_measure_of_conv space_measure_of_conv)
+  have [simp]: "{g. simple_function (measure_of \<Omega> A ?sm) g \<and> g \<le> f} = ?LEf"
+    using simple_function_cong_algebra
+    by (metis (lifting) sets_measure_of_conv space_measure_of_conv)
+
+  have "integral\<^sup>N (measure_of \<Omega> A ?sm) f = (\<Squnion>g\<in>?LEf. integral\<^sup>S (measure_of \<Omega> A ?sm) g)"
+    unfolding nn_integral_def by simp
+  also have "\<dots> = (\<Squnion>g\<in>?LEf. integral\<^sup>S (measure_of \<Omega> A \<mu>) g + integral\<^sup>S (measure_of \<Omega> A \<mu>') g)"
+    apply (rule SUP_cong, simp)
+    using simple_integral_sum_emeasure assms by force
+  also have "\<dots> =
+    (\<Squnion>g\<in>?LEf. integral\<^sup>S (measure_of \<Omega> A \<mu>) g) + (\<Squnion>g\<in>?LEf. integral\<^sup>S (measure_of \<Omega> A \<mu>') g)"
+  proof -
+    { fix g1 g2
+      assume asm: "g1 \<in> ?LEf" "g2 \<in> ?LEf"
+      let ?g12 = "\<lambda>x. max (g1 x) (g2 x)"
+      have g12s: "simple_function (measure_of \<Omega> A \<mu>) ?g12"
+        using asm by blast
+      moreover have "?g12 \<le> f"
+        using asm by (simp add: le_fun_def)
+      ultimately have g12LEf: "?g12 \<in> ?LEf"
+        by simp
+      have "integral\<^sup>S (measure_of \<Omega> A \<mu>) g1 \<le> integral\<^sup>S (measure_of \<Omega> A \<mu>) ?g12"
+        using asm by (intro simple_integral_mono; simp)
+      moreover have "integral\<^sup>S (measure_of \<Omega> A \<mu>') g2 \<le> integral\<^sup>S (measure_of \<Omega> A \<mu>') ?g12"
+        using asm simple_integral_mono
+        by (smt (verit, del_insts) LEf' g12s le_fun_def mem_Collect_eq order.refl max.bounded_iff)
+      ultimately have g12ub: "integral\<^sup>S (measure_of \<Omega> A \<mu>) g1 + integral\<^sup>S (measure_of \<Omega> A \<mu>') g2
+        \<le> integral\<^sup>S (measure_of \<Omega> A \<mu>) ?g12 + integral\<^sup>S (measure_of \<Omega> A \<mu>') ?g12"
+        using add_mono by blast
+      note g12LEf g12ub }
+    thus ?thesis
+      using SUP_add_directed_ennreal
+        [of ?LEf "\<lambda>h. integral\<^sup>S (measure_of \<Omega> A \<mu>) h" "\<lambda>h. integral\<^sup>S (measure_of \<Omega> A \<mu>') h"]
+      by blast
+  qed
+  also have "\<dots> = integral\<^sup>N (measure_of \<Omega> A \<mu>) f + integral\<^sup>N (measure_of \<Omega> A \<mu>') f"
+    unfolding nn_integral_def by simp
+  finally show ?thesis .
+
+qed
+
+(* To be included in Lebesgue_Stieltjes_Integral.thy *)
+lemma sum_emeasure_interval_measure:
+  fixes F G :: "real \<Rightarrow> real"
+  assumes "mono F" "\<And>x. continuous (at_right x) F" and
+    "mono G" "\<And>x. continuous (at_right x) G"
+  defines "emFG A \<equiv> emeasure (interval_measure F) A + emeasure (interval_measure G) A"
+  shows "interval_measure (\<lambda>x. F x + G x) = measure_of UNIV (sets borel) emFG"
+proof -
+
+  let ?IM = interval_measure
+  let ?H = "\<lambda>x. F x + G x"
+  let ?IMFG = "measure_of UNIV (sets borel) emFG"
+
+  have [simp]: "mono ?H"
+    using assms by (smt (verit) ord.mono_on_def)
+  have [simp]: "\<And>x. continuous (at_right x) ?H"
+    using assms using continuous_add by blast
+  have [simp]: "measure_space UNIV (sets borel) emFG"
+    unfolding emFG_def using measure_space_sum_emeasure
+    by (metis sets_interval_measure space_interval_measure measure_space)
+
+  have setsIMFG: "sets ?IMFG = sets borel"
+    using sets.sets_measure_of_eq by fastforce
+  moreover have "\<And>a b. a \<le> b \<Longrightarrow> emeasure (?IM ?H) {a<..b} < \<infinity>"
+    by (rewrite emeasure_interval_measure_Ioc; simp add: monoD add_mono assms)
+  moreover have "\<And>a b. a \<le> b \<Longrightarrow> emeasure (?IM ?H) {a<..b} = emeasure ?IMFG {a<..b}"
+  proof -
+    fix a b :: real assume ab: "a \<le> b"
+    have "emeasure (?IM ?H) {a<..b} = ennreal (?H b - ?H a)"
+      by (rewrite emeasure_interval_measure_Ioc; simp add: ab monoD assms add_mono)
+    moreover have "emeasure ?IMFG {a<..b} = ennreal (F b - F a) + ennreal (G b - G a)"
+    proof -
+      have "emeasure ?IMFG {a<..b} = emeasure (?IM F) {a<..b} + emeasure (?IM G) {a<..b}"
+        using setsIMFG by (rewrite emeasure_measure_of_conv) (simp add: emFG_def)
+      moreover have "emeasure (?IM F) {a<..b} = ennreal (F b - F a)" and
+        "emeasure (?IM G) {a<..b} = ennreal (G b - G a)"
+        by (rewrite emeasure_interval_measure_Ioc; simp add: ab assms monoD)+
+      ultimately show ?thesis
+        by simp
+    qed
+    ultimately show "emeasure (?IM ?H) {a<..b} = emeasure ?IMFG {a<..b}"
+      by (smt (verit, ccfv_SIG) ab \<open>mono F\<close> \<open>mono G\<close> ennreal_plus_if monoE)
+  qed
+  ultimately show ?thesis
+    using measure_eqI_Ioc by simp
+
+qed
+
+(* To be included in Lebesgue_Stieltjes_Integral.thy *)
+lemma nn_integral_sum_interval_measure:
+  fixes F G :: "real \<Rightarrow> real" and h :: "real \<Rightarrow> ennreal"
+  assumes "mono F" "\<And>x. continuous (at_right x) F" and
+    "mono G" "\<And>x. continuous (at_right x) G"
+  shows "(\<integral>\<^sup>+x. h x \<partial>(interval_measure (\<lambda>s. F s + G s))) =
+    (\<integral>\<^sup>+x. h x \<partial>(interval_measure F)) + (\<integral>\<^sup>+x. h x \<partial>(interval_measure G))"
+proof -
+
+  let ?IM = interval_measure
+  let ?IMFG = "measure_of UNIV (sets borel) (\<lambda>A. emeasure (?IM F) A + emeasure (?IM G) A)"
+
+  have [simp]: "measure_of UNIV (sets borel) (emeasure (?IM F)) = ?IM F" and
+    [simp]: "measure_of UNIV (sets borel) (emeasure (?IM G)) = ?IM G"
+    by (metis measure_of_of_measure sets_interval_measure space_interval_measure)+
+  have [simp]: "measure_space UNIV (sets borel) (emeasure (?IM F))" and
+    [simp]: "measure_space UNIV (sets borel) (emeasure (?IM G))"
+    using assms by (metis measure_space sets_interval_measure space_interval_measure)+
+
+  have "(\<integral>\<^sup>+x. h x \<partial>(?IM (\<lambda>s. F s + G s))) = (\<integral>\<^sup>+x. h x \<partial>(?IMFG))"
+    using sum_emeasure_interval_measure assms by simp
+  also have "\<dots> = (\<integral>\<^sup>+x. h x \<partial>(?IM F)) + (\<integral>\<^sup>+x. h x \<partial>(?IM G))"
+    by (rewrite nn_integral_sum_emeasure; simp)
+  finally show ?thesis .
+
+qed
+
 context survival_model
 begin
 
@@ -178,6 +357,64 @@ proof -
 qed
 
 end
+
+text \<open>
+  If "ab1" and "ab2" are accumulated benefits, then "ab1 + ab2" also becomes an accumulated benefit.
+\<close>
+
+locale val_sum_ab =  val1: val i l f ab1 tp  + val2: val i l f ab2 tp for i l f ab1 ab2 tp
+begin
+
+notation l (\<open>$l'__\<close> [101] 200)
+notation val1.death_pt (\<open>$\<psi>\<close>)
+notation val1.total (\<open>$T'__\<close> [101] 200)
+notation val1.lives (\<open>$L'_{_&_}\<close> [0,0] 200)
+notation val1.death (\<open>$d'_{_&_}\<close> [0,0] 200)
+notation val1.die_central (\<open>$m'_{_&_}\<close> [0,0] 200)
+notation val1.life_table_measure (\<open>\<MM>\<close>)
+notation val1.survival_model_X (\<open>X\<close>)
+notation val1.futr_life (\<open>T\<close>)
+notation val1.survive (\<open>$p'_{_&_}\<close> [0,0] 200)
+notation val1.survive_1 (\<open>$p'__\<close> [101] 200)
+notation val1.die (\<open>$q'_{_&_}\<close> [0,0] 200)
+notation val1.die_1 (\<open>$q'__\<close> [101] 200)
+notation val1.die_defer (\<open>$q'_{_\<bar>_&_}\<close> [0,0,0] 200)
+notation val1.die_defer_1 (\<open>$q'_{_\<bar>&_}\<close> [0,0] 200)
+notation val1.life_expect (\<open>$e`\<circ>'__\<close> [101] 200)
+notation val1.temp_life_expect (\<open>$e`\<circ>'_{_:_}\<close> [0,0] 200)
+notation val1.curt_life_expect (\<open>$e'__\<close> [101] 200)
+notation val1.temp_curt_life_expect (\<open>$e'_{_:_}\<close> [0,0] 200)
+notation val1.force_mortal (\<open>$\<mu>'__\<close> [101] 200)
+
+definition ab :: "real \<Rightarrow> real \<Rightarrow> real" where "ab \<theta> t \<equiv> ab1 \<theta> t + ab2 \<theta> t"
+
+lemma ab_f_0[simp]: "\<And>\<theta> t. t < f \<Longrightarrow> ab \<theta> t = 0"
+  unfolding ab_def by simp
+
+lemma ab_right_continuous[simp]: "\<And>\<theta> t. continuous (at_right t) (ab \<theta>)"
+  unfolding ab_def by (simp add: continuous_add)
+
+lemma ab_mono[simp]: "\<And>\<theta>. mono (ab \<theta>)"
+  unfolding ab_def by (smt (verit) monoD monoI val1.ab_mono val2.ab_mono)
+
+lemma tp_measurable[measurable]: "\<And>\<theta>. (tp \<theta>) \<in> borel_measurable borel"
+  by measurable
+
+lemma ennPVs_measurable[measurable]: "(\<lambda>\<theta>. \<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) \<in> borel_measurable borel"
+proof -
+  have "\<And>\<theta>. (\<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab \<theta>))) =
+    (\<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab1 \<theta>))) + (\<integral>\<^sup>+t. $v.^(tp \<theta> t) \<partial>(IM (ab2 \<theta>)))"
+    unfolding ab_def by (rewrite nn_integral_sum_interval_measure; simp)
+  thus ?thesis
+    using val1.ennPVs_measurable val2.ennPVs_measurable by simp
+qed
+
+end
+
+sublocale val_sum_ab \<subseteq> val i l f ab tp
+  by (standard; simp)
+
+(* TODO: prove lemmas "ennAPV_calc", "APV_set_integrable", "APV_calc" *)
 
 subsubsection \<open>Term Life\<close>
 
@@ -702,31 +939,13 @@ lemma ab_f_th_1:
 lemma ab_right_continuous[simp]:
   fixes \<theta> t :: real
   shows "continuous (at_right t) (ab \<theta>)"
-proof (cases \<open>\<theta> \<le> t\<close>)
-  case True
-  hence "\<forall>\<^sub>F s in at_right t. ab \<theta> s = indicator {f<..} \<theta>"
-    by (metis (mono_tags, lifting) ab_th_indicator eventually_at_right_less eventually_mono
-        landau_o.R_trans less_le)
-  with True show ?thesis
-    by (rewrite continuous_at_within_cong[of _ t "\<lambda>_. indicator {f<..} \<theta>"]; simp add: ab_def)
-next
-  case False
-  moreover have "\<forall>\<^sub>F s in at_right t. ab \<theta> s = 0"
-    using False ab_th_0 by (smt (verit, ccfv_SIG) eventually_at_right)
-  ultimately show ?thesis
-    by (simp add: continuous_at_within_cong)
-qed
+  unfolding ab_def using indicator_Ici_right_continuous continuous_mult_left by blast
 
 lemma ab_mono[simp]:
   fixes \<theta>::real
   shows "mono (ab \<theta>)"
-proof -
-  have "mono (indicat_real {\<theta>..})"
-    using mono_indicator_Ici by auto
-  thus ?thesis
-    unfolding ab_def
-    by (metis (mono_tags, lifting) Rings.mono_mult indicator_pos_le monoD ord.mono_on_def)
-qed
+  unfolding ab_def using mono_indicator_Ici
+  by (metis (mono_tags, lifting) Rings.mono_mult indicator_pos_le monoE ord.mono_on_def)
 
 lemma tp_measurable[measurable]:
   fixes \<theta>::real
@@ -993,31 +1212,13 @@ lemma ab_f_fn_th_1:
 lemma ab_right_continuous[simp]:
   fixes \<theta> t :: real
   shows "continuous (at_right t) (ab \<theta>)"
-proof (cases \<open>\<theta> \<le> t\<close>)
-  case True
-  hence "\<forall>\<^sub>F s in at_right t. ab \<theta> s = indicator {f<..f+n} \<theta>"
-    by (smt (verit, ccfv_SIG) ab_def ab_th_indicator eventually_at_right_less eventually_mono
-        less_eq_real_def)
-  with True show ?thesis
-    by (rewrite continuous_at_within_cong[of _ t "\<lambda>_. indicator {f<..f+n} \<theta>"]; simp add: ab_def)
-next
-  case False
-  moreover have "\<forall>\<^sub>F s in at_right t. ab \<theta> s = 0"
-    using False ab_th_0 by (smt (verit, ccfv_SIG) eventually_at_right)
-  ultimately show ?thesis
-    by (simp add: continuous_at_within_cong)
-qed
+  unfolding ab_def using indicator_Ici_right_continuous continuous_mult_left by blast
 
 lemma ab_mono[simp]:
   fixes \<theta>::real
   shows "mono (ab \<theta>)"
-proof -
-  have "mono (indicat_real {\<theta>..})"
-    using mono_indicator_Ici by auto
-  thus ?thesis
-    unfolding ab_def
-    by (metis (mono_tags, lifting) Rings.mono_mult indicator_pos_le monoD ord.mono_on_def)
-qed
+  unfolding ab_def using mono_indicator_Ici
+  by (metis (mono_tags, lifting) Rings.mono_mult indicator_pos_le monoE ord.mono_on_def)
 
 lemma tp_measurable[measurable]:
   fixes \<theta>::real
